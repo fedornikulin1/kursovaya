@@ -4,3 +4,5 @@ django-filter==25.2
 pillow==12.2.0
 sqlparse==0.5.5
 tzdata==2026.1
+gunicorn==25.3.0
+packaging==26.1
