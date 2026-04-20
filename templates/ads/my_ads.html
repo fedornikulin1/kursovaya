@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Мои объявления — UniBoard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2 mb-0">📋 Мои объявления</h1>
+    <a href="{% url 'ads:ad_create' %}" class="btn btn-success">
+        ➕ Подать объявление
+    </a>
+</div>
+
+{% for ad in ads %}
+<div class="card mb-4 shadow-sm border-0">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <h5 class="mb-0">
+            <a href="{% url 'ads:ad_detail' ad.pk %}" class="text-decoration-none fw-semibold text-dark">
+                {{ ad.title }}
+            </a>
+        </h5>
+        <span class="badge {% if ad.is_active %}bg-success{% else %}bg-secondary{% endif %} px-3 py-2">
+            {% if ad.is_active %}Активно{% else %}Снято с публикации{% endif %}
+        </span>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                {% if ad.image %}
+                <img src="{{ ad.image.url }}" class="img-fluid rounded" alt="{{ ad.title }}" style="max-height: 150px;">
+                {% else %}
+                <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 150px;">
+                    <span class="text-muted">Нет фото</span>
+                </div>
+                {% endif %}
+            </div>
+            <div class="col-md-9">
+                <p class="card-text">{{ ad.description|truncatechars:200 }}</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="text-success">{{ ad.price }} ₽</h5>
+                    <small class="text-muted">
+                        📅 Опубликовано: {{ ad.created_at|date:"d.m.Y" }}
+                    </small>
+                </div>
+                {% if ad.contact_info %}
+                <div class="mt-2 p-2 bg-light rounded">
+                    <i class="fas fa-address-card me-1"></i> <strong>Контакты:</strong> {{ ad.contact_info }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Отклики -->
+        <h6 class="mt-4 mb-3">💬 Отклики ({{ ad.responses.count }})</h6>
+        {% if ad.responses.all %}
+        <div class="list-group">
+            {% for resp in ad.responses.all %}
+            <div class="list-group-item list-group-item-action py-3">
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">{{ resp.user.username }}</h6>
+                    <small>{{ resp.created_at|date:"d.m.Y H:i" }}</small>
+                </div>
+                <p class="mb-2">{{ resp.text }}</p>
+
+                {# Статус принятия #}
+                {% if not resp.is_accepted %}
+                <a href="{% url 'ads:accept_response' resp.pk %}" class="btn btn-sm btn-outline-success me-1">
+                    ✓ Принять
+                </a>
+                <a href="{% url 'ads:decline_response' resp.pk %}" class="btn btn-sm btn-outline-danger">
+                    ✗ Отклонить
+                </a>
+                {% else %}
+                <span class="badge bg-success px-3 py-2">✅ Принят</span>
+                {% endif %}
+
+                {# Ответ автора (если есть) #}
+                {% if resp.reply %}
+                <div class="mt-2 p-2 bg-light rounded">
+                    <i class="fas fa-reply me-1"></i> <strong>Ваш ответ:</strong> {{ resp.reply }}
+                </div>
+                {% endif %}
+
+                {# Кнопка "Ответить" (только для автора объявления, если ещё нет ответа) #}
+                {% if user == ad.author and not resp.reply %}
+                <a href="{% url 'ads:reply_to_response' resp.pk %}" class="btn btn-sm btn-outline-info mt-2">
+                    <i class="fas fa-reply"></i> Ответить
+                </a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted">Пока нет откликов на это объявление.</p>
+        {% endif %}
+    </div>
+    <div class="card-footer bg-transparent d-flex justify-content-between">
+        <div>
+            <a href="{% url 'ads:ad_update' ad.pk %}" class="btn btn-sm btn-outline-primary">
+                ✏️ Редактировать
+            </a>
+            <a href="{% url 'ads:ad_delete' ad.pk %}" class="btn btn-sm btn-outline-danger">
+                🗑️ Удалить
+            </a>
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="text-center py-5">
+    <div class="display-1 text-muted mb-4">📭</div>
+    <h3 class="text-muted">У вас пока нет объявлений</h3>
+    <p class="lead">Создайте первое объявление, чтобы начать продавать или предлагать услуги</p>
+    <a href="{% url 'ads:ad_create' %}" class="btn btn-success btn-lg mt-3">
+        ➕ Подать объявление
+    </a>
+</div>
+{% endfor %}
+{% endblock %}

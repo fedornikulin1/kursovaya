@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Избранное — UniBoard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2 mb-0">⭐ Избранные объявления</h1>
+    <a href="{% url 'ads:ad_list' %}" class="btn btn-outline-primary">
+        ← Ко всем объявлениям
+    </a>
+</div>
+
+{% if favorites %}
+<div class="row g-4">
+    {% for fav in favorites %}
+    <div class="col-lg-4 col-md-6">
+        <div class="card h-100 shadow-sm border-0 hover-shadow">
+            <div class="position-relative">
+                {% if fav.ad.image %}
+                <img src="{{ fav.ad.image.url }}" class="card-img-top" alt="{{ fav.ad.title }}"
+                     style="height: 200px; object-fit: cover; border-top-left-radius: 0.5rem; border-top-right-radius: 0.5rem;">
+                {% else %}
+                <div class="bg-light d-flex align-items-center justify-content-center"
+                     style="height: 200px; border-top-left-radius: 0.5rem; border-top-right-radius: 0.5rem;">
+                    <span class="text-muted">📷 Нет фото</span>
+                </div>
+                {% endif %}
+                <span class="badge bg-primary position-absolute top-0 end-0 m-2 px-3 py-2">
+                    {{ fav.ad.category.name }}
+                </span>
+            </div>
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title">
+                    <a href="{% url 'ads:ad_detail' fav.ad.pk %}" class="text-decoration-none text-dark">
+                        {{ fav.ad.title }}
+                    </a>
+                </h5>
+                <p class="card-text text-muted small flex-grow-1">
+                    {{ fav.ad.description|truncatechars:120 }}
+                </p>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <span class="h5 mb-0 text-success">{{ fav.ad.price }} ₽</span>
+                    <small class="text-muted">
+                        📅 {{ fav.ad.created_at|date:"d.m.Y" }}
+                    </small>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0 pb-3 pt-0">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">
+                        👤 {{ fav.ad.author.username }}
+                    </span>
+                    <a href="{% url 'ads:ad_detail' fav.ad.pk %}" class="btn btn-sm btn-outline-primary">
+                        Подробнее →
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-5">
+    <div class="display-1 text-muted mb-4">⭐</div>
+    <h3 class="text-muted">В избранном пока пусто</h3>
+    <p class="lead">Добавляйте понравившиеся объявления, чтобы не потерять их</p>
+    <a href="{% url 'ads:ad_list' %}" class="btn btn-primary btn-lg mt-3">
+        Смотреть объявления
+    </a>
+</div>
+{% endif %}
+{% endblock %}
+
+<style>
+    .hover-shadow {
+        transition: box-shadow 0.2s ease-in-out, transform 0.1s ease;
+    }
+
+        .hover-shadow:hover {
+            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1) !important;
+            transform: translateY(-2px);
+        }
+</style>

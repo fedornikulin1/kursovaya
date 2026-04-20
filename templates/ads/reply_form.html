@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Ответить на отклик{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Ответ пользователю {{ response.user.username }}</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Отклик:</strong> {{ response.text }}</p>
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Отправить ответ</button>
+                        <a href="{% url 'ads:my_ads' %}" class="btn btn-outline-secondary">Отмена</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

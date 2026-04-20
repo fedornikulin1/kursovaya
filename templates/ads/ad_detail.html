@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}{{ ad.title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h1>{{ ad.title }}</h1>
+        <p><strong>Категория:</strong> {{ ad.category.name }}</p>
+        <p><strong>Цена:</strong> {{ ad.price }} ₽</p>
+        <p><strong>Автор:</strong> {{ ad.author.username }}</p>
+        <p><strong>Дата публикации:</strong> {{ ad.created_at|date:"d.m.Y H:i" }}</p>
+        <hr>
+        <p>{{ ad.description|linebreaks }}</p>
+
+        {% if ad.image %}
+        <div class="text-center mb-4">
+            <img src="{{ ad.image.url }}" class="img-fluid rounded shadow" alt="{{ ad.title }}" style="max-height: 500px;">
+        </div>
+        {% endif %}
+
+        <hr>
+        <h3>Отклики ({{ ad.responses.count }})</h3>
+        {% for resp in ad.responses.all %}
+        <div class="card mb-2">
+            <div class="card-body">
+                <strong>{{ resp.user.username }}</strong>
+                <small class="text-muted">{{ resp.created_at|date:"d.m.Y H:i" }}</small>
+                <p class="mt-2">{{ resp.text }}</p>
+                {% if resp.is_accepted %}
+                <span class="badge bg-success">Принят</span>
+                {% endif %}
+                {% if resp.reply %}
+                <div class="mt-2 p-2 bg-light rounded">
+                    <i class="fas fa-reply me-1"></i> <strong>Ответ автора:</strong> {{ resp.reply }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <p>Пока никто не оставил отклик. Будьте первым!</p>
+        {% endfor %}
+    </div>
+
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Действия</h5>
+                {% if user.is_authenticated %}
+                <button id="favorite-btn" class="btn btn-outline-danger" data-ad-id="{{ ad.pk }}">
+                    {% if user in ad.favorited_by.all %}
+                    ★ В избранном
+                    {% else %}
+                    ☆ Добавить в избранное
+                    {% endif %}
+                </button>
+                {% else %}
+                <p><a href="{% url 'login' %}">Войдите</a>, чтобы добавить в избранное.</p>
+                {% endif %}
+
+                {% if ad.contact_info %}
+                <div class="alert alert-light mt-3">
+                    <i class="fas fa-address-card me-1"></i> <strong>Контакты:</strong><br>
+                    {{ ad.contact_info }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if user.is_authenticated %}
+        <div class="card">
+            <div class="card-body">
+                <h5 class="mb-3">💬 Оставить отклик</h5>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="{{ form.text.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.text.label }}
+                        </label>
+                        <textarea name="{{ form.text.name }}"
+                                  id="{{ form.text.id_for_label }}"
+                                  class="form-control {% if form.text.errors %}is-invalid{% endif %}"
+                                  rows="3"
+                                  placeholder="Напишите ваш вопрос или предложение...">{{ form.text.value|default:'' }}</textarea>
+                        {% if form.text.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.text.errors|join:", " }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-paper-plane me-1"></i>Отправить
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <a href="{% url 'login' %}">Войдите</a>, чтобы оставить отклик.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    document.getElementById('favorite-btn').addEventListener('click', function() {
+        const adId = this.dataset.adId;
+        fetch(`/ad/${adId}/favorite/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'added') {
+                this.innerHTML = '★ В избранном';
+            } else {
+                this.innerHTML = '☆ Добавить в избранное';
+            }
+        });
+    });
+</script>
+{% endblock %}
