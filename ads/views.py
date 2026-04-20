@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+п»їfrom django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView
 from django.contrib.auth.forms import UserCreationForm
@@ -134,7 +134,7 @@ from .models import Response
 @login_required
 def accept_response(request, pk):
     response = get_object_or_404(Response, pk=pk)
-    # Проверяем, что текущий пользователь — автор объявления
+    # РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ С‚РµРєСѓС‰РёР№ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ вЂ” Р°РІС‚РѕСЂ РѕР±СЉСЏРІР»РµРЅРёСЏ
     if request.user == response.ad.author:
         response.is_accepted = True
         response.save()
@@ -147,17 +147,17 @@ def decline_response(request, pk):
         response.delete()
     return redirect('ads:my_ads')
 
-# Добавьте эти импорты в начало файла, если их ещё нет:
+# Р”РѕР±Р°РІСЊС‚Рµ СЌС‚Рё РёРјРїРѕСЂС‚С‹ РІ РЅР°С‡Р°Р»Рѕ С„Р°Р№Р»Р°, РµСЃР»Рё РёС… РµС‰С‘ РЅРµС‚:
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from .models import Response
 from .forms import ReplyForm
 
-# Сама функция
+# РЎР°РјР° С„СѓРЅРєС†РёСЏ
 @login_required
 def reply_to_response(request, pk):
     response = get_object_or_404(Response, pk=pk)
-    # Проверка, что пользователь – автор объявления
+    # РџСЂРѕРІРµСЂРєР°, С‡С‚Рѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ вЂ“ Р°РІС‚РѕСЂ РѕР±СЉСЏРІР»РµРЅРёСЏ
     if request.user != response.ad.author:
         return redirect('ads:my_ads')
 
