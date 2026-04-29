@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ profile_user.username }} — профиль{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body text-center">
+                <i class="fas fa-user-circle fa-5x text-primary mb-3"></i>
+                <h3>{{ profile_user.username }}</h3>
+                <p class="text-muted">На сайте с {{ profile_user.date_joined|date:"d.m.Y" }}</p>
+                <p>
+                    <strong>Рейтинг:</strong>
+                    {% if avg_rating %}
+                    {{ avg_rating|floatformat:1 }} / 5 ⭐
+                    {% else %}
+                    Нет отзывов
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% if user.is_authenticated and user != profile_user %}
+        {% if can_review %}
+        <a href="{% url 'ads:add_review' profile_user.username %}" class="btn btn-outline-warning w-100 mb-3">
+            ✏️ Оставить отзыв
+        </a>
+        {% else %}
+        <p class="text-muted text-center">Вы уже оставили отзыв.</p>
+        {% endif %}
+        {% endif %}
+    </div>
+
+    <div class="col-md-8">
+        <h4>📢 Объявления пользователя</h4>
+        <div class="row">
+            {% for ad in ads %}
+            <div class="col-md-6 mb-4">
+                <div class="card h-100 shadow-sm border-0 hover-shadow">
+                    <div class="position-relative">
+                        {% if ad.image %}
+                        <img src="{{ ad.image.url }}" class="card-img-top" alt="{{ ad.title }}"
+                             style="height: 150px; object-fit: cover; border-top-left-radius: 0.5rem; border-top-right-radius: 0.5rem;">
+                        {% else %}
+                        <div class="bg-light d-flex align-items-center justify-content-center"
+                             style="height: 150px; border-top-left-radius: 0.5rem; border-top-right-radius: 0.5rem;">
+                            <span class="text-muted">Нет фото</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <a href="{% url 'ads:ad_detail' ad.pk %}" class="text-decoration-none text-dark">{{ ad.title }}</a>
+                        </h6>
+                        <p class="card-text text-success">{{ ad.price }} ₽</p>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <p>Пока нет активных объявлений.</p>
+            {% endfor %}
+        </div>
+
+        <hr>
+        <h4>💬 Отзывы ({{ reviews.count }})</h4>
+        {% for review in reviews %}
+        <div class="card mb-2">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <strong>{{ review.from_user.username }}</strong>
+                    <small>{{ review.created_at|date:"d.m.Y" }}</small>
+                </div>
+                <div class="text-warning">
+                    {% for i in "12345" %}
+                    {% if forloop.counter <= review.rating %}
+                    ★
+                    {% else %}
+                    ☆
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% if review.text %}
+                <p class="mb-0 mt-2">{{ review.text }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <p>Отзывов пока нет.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

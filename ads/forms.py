@@ -25,3 +25,14 @@ class ReplyForm(forms.ModelForm):
         widgets = {
             'reply': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Ваш ответ...'}),
         }
+
+from .models import Review
+
+class ReviewForm(forms.ModelForm):
+    class Meta:
+        model = Review
+        fields = ['rating', 'text']
+        widgets = {
+            'rating': forms.RadioSelect(choices=[(i, f"{'⭐'*i}") for i in range(1, 6)]),
+            'text': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Поделитесь впечатлением...'}),
+        }

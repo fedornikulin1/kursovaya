@@ -11,6 +11,11 @@ from django.shortcuts import get_object_or_404
 from .models import Favorite
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db.models import Avg
+from .models import Review
+from .forms import ReviewForm
+from django.contrib.auth.models import User
+
 
 
 @login_required
@@ -60,6 +65,13 @@ class AdDetailView(FormMixin, DetailView):
     template_name = 'ads/ad_detail.html'
     context_object_name = 'ad'
     form_class = ResponseForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        ad = self.get_object()
+        # Исключаем текущее объявление, берём 4 случайных активных
+        context['recommended_ads'] = Ad.objects.filter(is_active=True).exclude(pk=ad.pk).order_by('?')[:4]
+        return context
 
     def get_success_url(self):
         return reverse_lazy('ads:ad_detail', kwargs={'pk': self.object.pk})
@@ -173,3 +185,45 @@ def reply_to_response(request, pk):
         'form': form,
         'response': response
     })
+
+class UserProfileView(DetailView):
+    model = User
+    template_name = 'ads/user_profile.html'
+    context_object_name = 'profile_user'
+
+    def get_object(self):
+        return get_object_or_404(User, username=self.kwargs['username'])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.get_object()
+        context['ads'] = Ad.objects.filter(author=user, is_active=True)
+        context['reviews'] = Review.objects.filter(to_user=user).select_related('from_user')
+        context['avg_rating'] = context['reviews'].aggregate(Avg('rating'))['rating__avg']
+        context['review_form'] = ReviewForm()
+        # Можно ли текущему пользователю оставить отзыв?
+        if self.request.user.is_authenticated and self.request.user != user:
+            context['can_review'] = not Review.objects.filter(to_user=user, from_user=self.request.user).exists()
+        else:
+            context['can_review'] = False
+        return context
+
+
+@login_required
+def add_review(request, username):
+    to_user = get_object_or_404(User, username=username)
+    if request.user == to_user:
+        return redirect('ads:user_profile', username=username)  # самому себе нельзя
+    if Review.objects.filter(to_user=to_user, from_user=request.user).exists():
+        return redirect('ads:user_profile', username=username)  # уже оставлял
+    if request.method == 'POST':
+        form = ReviewForm(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.to_user = to_user
+            review.from_user = request.user
+            review.save()
+            return redirect('ads:user_profile', username=username)
+    else:
+        form = ReviewForm()
+    return render(request, 'ads/add_review.html', {'form': form, 'to_user': to_user})

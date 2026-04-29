@@ -1,6 +1,12 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\ads",
+    "\\config",
+    "\\templates",
+    "\\templates\\ads",
+    "\\templates\\registration"
   ],
+  "SelectedNode": "\\templates\\base.html",
   "PreviewInSolutionExplorer": false
 }

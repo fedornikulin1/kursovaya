@@ -16,4 +16,6 @@ urlpatterns = [
     path('response/<int:pk>/accept/', views.accept_response, name='accept_response'),
     path('response/<int:pk>/decline/', views.decline_response, name='decline_response'),
     path('response/<int:pk>/reply/', views.reply_to_response, name='reply_to_response'),
+    path('user/<str:username>/', views.UserProfileView.as_view(), name='user_profile'),
+    path('user/<str:username>/review/', views.add_review, name='add_review'),
 ]

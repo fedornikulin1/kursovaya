@@ -62,3 +62,18 @@ class Response(models.Model):
 
     def __str__(self):
         return f"{self.user.username} -> {self.ad.title[:20]}"
+
+class Review(models.Model):
+    to_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews_received', verbose_name="Кому")
+    from_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews_given', verbose_name="От кого")
+    rating = models.PositiveSmallIntegerField(choices=[(i, str(i)) for i in range(1, 6)], verbose_name="Оценка")
+    text = models.TextField(blank=True, verbose_name="Текст отзыва")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Отзыв"
+        verbose_name_plural = "Отзывы"
+        unique_together = ['to_user', 'from_user']  # один отзыв на пользователя
+
+    def __str__(self):
+        return f"Отзыв от {self.from_user.username} для {self.to_user.username}"
