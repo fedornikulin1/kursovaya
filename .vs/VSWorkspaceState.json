@@ -7,6 +7,6 @@
     "\\templates\\ads",
     "\\templates\\registration"
   ],
-  "SelectedNode": "\\templates\\base.html",
+  "SelectedNode": "\\config\\settings.py",
   "PreviewInSolutionExplorer": false
 }
