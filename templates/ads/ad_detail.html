@@ -1,163 +1,210 @@
 {% extends "base.html" %}
-
-{% block title %}{{ ad.title }}{% endblock %}
-
+{% block body_class %}detail-page{% endblock %}
+{% block title %}
+  {{ ad.title }} — ДоскаСВФУ{% endblock %}
 {% block content %}
-<div class="row">
-    <div class="col-md-8">
-        <h1>{{ ad.title }}</h1>
-        <p><strong>Категория:</strong> {{ ad.category.name }}</p>
-        <p><strong>Цена:</strong> {{ ad.price }} ₽</p>
-        <p><strong>Автор:</strong> <a href="{% url 'ads:user_profile' ad.author.username %}" class="text-decoration-none">{{ ad.author.username }}</a></p>
-        <p><strong>Дата публикации:</strong> {{ ad.created_at|date:"d.m.Y H:i" }}</p>
-        <hr>
-        <p>{{ ad.description|linebreaks }}</p>
-
-        {% if ad.image %}
-        <div class="text-center mb-4">
-            <img src="{{ ad.image.url }}" class="img-fluid rounded shadow" alt="{{ ad.title }}" style="max-height: 500px;">
-        </div>
-        {% endif %}
-
-        <hr>
-        <h3>Отклики ({{ ad.responses.count }})</h3>
-        {% for resp in ad.responses.all %}
-        <div class="card mb-2">
-            <div class="card-body">
-                <strong>{{ resp.user.username }}</strong>
-                <small class="text-muted">{{ resp.created_at|date:"d.m.Y H:i" }}</small>
-                <p class="mt-2">{{ resp.text }}</p>
-                {% if resp.is_accepted %}
-                <span class="badge bg-success">Принят</span>
-                {% endif %}
-                {% if resp.reply %}
-                <div class="mt-2 p-2 bg-light rounded">
-                    <i class="fas fa-reply me-1"></i> <strong>Ответ автора:</strong> {{ resp.reply }}
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        {% empty %}
-        <p>Пока никто не оставил отклик. Будьте первым!</p>
-        {% endfor %}
+  <nav class="breadcrumbs">
+    <a href="{% url 'ads:ad_list' %}">Объявления</a>
+    <span>/</span>
+    <a href="{% url 'ads:ad_list' %}?category={{ ad.category_id }}">{{ ad.category.name }}</a>
+    <span>/ {{ ad.title|truncatechars:45 }}</span>
+  </nav>
+  <div class="detail-heading">
+    <div>
+      <div class="listing-topline">
+        <span class="badge">{{ ad.get_kind_display }}</span>
+        <span class="muted">{{ ad.created_at|date:'d M Y' }} · № {{ ad.pk }}</span>
+      </div>
+      <h1>{{ ad.title }}</h1>
+      <p class="listing-location">{% include "components/icon.html" with name="pin" %} {{ ad.location }}</p>
     </div>
-
-    <div class="col-md-4">
-        <div class="card mb-3">
-            <div class="card-body">
-                <h5 class="card-title">Действия</h5>
-                {% if user.is_authenticated %}
-                <button id="favorite-btn" class="btn btn-outline-danger" data-ad-id="{{ ad.pk }}">
-                    {% if user in ad.favorited_by.all %}
-                    ★ В избранном
-                    {% else %}
-                    ☆ Добавить в избранное
-                    {% endif %}
-                </button>
-                {% else %}
-                <p><a href="{% url 'login' %}">Войдите</a>, чтобы добавить в избранное.</p>
-                {% endif %}
-
-                {% if ad.contact_info %}
-                <div class="alert alert-light mt-3">
-                    <i class="fas fa-address-card me-1"></i> <strong>Контакты:</strong><br>
-                    {{ ad.contact_info }}
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        {% if user.is_authenticated %}
-        <div class="card">
-            <div class="card-body">
-                <h5 class="mb-3">💬 Оставить отклик</h5>
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="{{ form.text.id_for_label }}" class="form-label fw-semibold">
-                            {{ form.text.label }}
-                        </label>
-                        <textarea name="{{ form.text.name }}"
-                                  id="{{ form.text.id_for_label }}"
-                                  class="form-control {% if form.text.errors %}is-invalid{% endif %}"
-                                  rows="3"
-                                  placeholder="Напишите ваш вопрос или предложение...">{{ form.text.value|default:'' }}</textarea>
-                        {% if form.text.errors %}
-                        <div class="invalid-feedback">
-                            {{ form.text.errors|join:", " }}
-                        </div>
-                        {% endif %}
-                    </div>
-                    <button type="submit" class="btn btn-success w-100">
-                        <i class="fas fa-paper-plane me-1"></i>Отправить
-                    </button>
-                </form>
-            </div>
-        </div>
+  </div>
+  <div class="detail-layout">
+    <section>
+      <div class="detail-photo">
+        {% if ad.cover %}
+          <img id="main-photo"
+               src="{{ ad.cover.url }}"
+               alt="{{ ad.title }}"
+               width="1000"
+               height="750">
+          <button class="photo-expand" type="button" data-expand-photo>Рассмотреть фото ↗</button>
         {% else %}
-        <div class="alert alert-info">
-            <a href="{% url 'login' %}">Войдите</a>, чтобы оставить отклик.
-        </div>
+          <div class="photo-placeholder">
+            {% include "components/icon.html" with name=ad.category.icon %}
+            <span>Фотография не добавлена</span>
+          </div>
         {% endif %}
-    </div>
-</div>
-
-<script>
-    document.getElementById('favorite-btn').addEventListener('click', function() {
-        const adId = this.dataset.adId;
-        fetch(`/ad/${adId}/favorite/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'added') {
-                this.innerHTML = '★ В избранном';
-            } else {
-                this.innerHTML = '☆ Добавить в избранное';
-            }
-        });
-    });
-</script>
-<!-- Рекомендации -->
-{% if recommended_ads %}
-<hr class="my-5">
-<h3 class="mb-4">💡 Вам может быть интересно</h3>
-<div class="row g-4">
-    {% for rec in recommended_ads %}
-    <div class="col-lg-3 col-md-6">
-        <div class="card h-100 shadow-sm border-0 hover-shadow">
-            <div class="position-relative">
-                {% if rec.image %}
-                <img src="{{ rec.image.url }}" class="card-img-top" alt="{{ rec.title }}"
-                     style="height: 150px; object-fit: cover; border-top-left-radius: 0.5rem; border-top-right-radius: 0.5rem;">
-                {% else %}
-                <div class="bg-light d-flex align-items-center justify-content-center"
-                     style="height: 150px; border-top-left-radius: 0.5rem; border-top-right-radius: 0.5rem;">
-                    <span class="text-muted">📷 Нет фото</span>
-                </div>
-                {% endif %}
-                <span class="badge bg-primary position-absolute top-0 end-0 m-2 px-2 py-1">
-                    {{ rec.category.name }}
-                </span>
-            </div>
-            <div class="card-body d-flex flex-column">
-                <h6 class="card-title">
-                    <a href="{% url 'ads:ad_detail' rec.pk %}" class="text-decoration-none text-dark">
-                        {{ rec.title }}
-                    </a>
-                </h6>
-                <p class="card-text text-muted small flex-grow-1">{{ rec.description|truncatechars:60 }}</p>
-                <div class="d-flex justify-content-between align-items-center mt-2">
-                    <span class="h6 mb-0 text-success">{{ rec.price }} ₽</span>
-                    <small class="text-muted">{{ rec.created_at|date:"d.m.Y" }}</small>
-                </div>
-            </div>
+      </div>
+      {% if ad.images.all %}
+        <div class="photo-thumbnails">
+          {% if ad.image %}
+            <button type="button"
+                    data-photo="{{ ad.image.url }}"
+                    aria-label="Показать обложку">
+              <img src="{{ ad.image.url }}" alt="Обложка">
+            </button>
+          {% endif %}
+          {% for photo in ad.images.all %}
+            <button type="button"
+                    data-photo="{{ photo.image.url }}"
+                    aria-label="Показать фотографию {{ forloop.counter }}">
+              <img src="{{ photo.image.url }}"
+                   alt="Фотография {{ forloop.counter }}"
+                   loading="lazy">
+            </button>
+          {% endfor %}
         </div>
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
+      {% endif %}
+      <div class="surface description-block">
+        <span class="eyebrow subtle">ПОДРОБНОСТИ</span>
+        <h2>Об этом объявлении</h2>
+        <div class="attributes">
+          <span>Категория<strong> {{ ad.category.name }}</strong>
+          </span>
+          <span>Состояние<strong> {{ ad.get_condition_display }}</strong>
+          </span>
+          <span>Место встречи<strong> {{ ad.location }}</strong>
+          </span>
+        </div>
+        <div class="prose">{{ ad.description|linebreaks }}</div>
+        {% if ad.is_study %}
+          <div class="study-detail-note"><span class="study-pill">Передай следующему курсу</span><h3>{{ ad.subject }}</h3><p>{% if ad.course %}{{ ad.course }} курс{% endif %}{% if ad.semester %} · {{ ad.semester }} семестр{% endif %}{% if ad.exchange_for %} · В обмен: {{ ad.exchange_for }}{% endif %}</p><a href="{% url 'campus:exchange' %}?q={{ ad.subject|urlencode }}">Другие предложения по предмету →</a></div>
+        {% endif %}
+        {% if ad.available_from %}<p class="field-help">Можно встретиться: {{ ad.available_from|date:"d.m.Y H:i" }} — {{ ad.available_until|date:"d.m.Y H:i" }} (Якутск).</p>{% endif %}
+        {% if ad.kind == "lend" %}<p class="study-detail-note">Временная передача: дату возврата согласуйте в карточке встречи в чате. Получение и возврат подтверждают оба участника.</p>{% endif %}
+      </div>
+    </section>
+    <aside class="detail-sidebar">
+      <div class="surface detail-summary">
+        <span class="summary-eyebrow">{% if ad.price_type == "free" %}Хорошие вещи ищут новый дом{% elif ad.price_type == "negotiable" %}Договоритесь с автором о цене{% else %}Стоимость{% endif %}</span>
+        <p class="detail-price">{{ ad.price_label }}</p>
+        <p class="listing-location">
+          {% include "components/icon.html" with name="pin" %}
+          {{ ad.location }}
+        </p>
+        {% if ad.status != "active" %}
+          <div class="flash">{{ ad.get_status_display }}</div>
+        {% endif %}
+        {% if user.pk == ad.author_id %}
+          <a class="btn btn-primary w-full" href="{% url 'ads:ad_update' ad.pk %}">Редактировать</a>
+          <a class="btn btn-outline w-full" href="{% url 'ads:ad_delete' ad.pk %}">Удалить объявление</a>
+        {% elif can_contact %}
+          {% if existing_conversation %}
+            <a href="{% url 'ads:conversation' existing_conversation.pk %}"
+               class="btn btn-primary w-full">{% include "components/icon.html" with name="chat" %} Продолжить переписку</a>
+          {% else %}
+            <a href="#contact-form"
+               class="btn btn-primary w-full"
+               data-focus-contact>{% include "components/icon.html" with name="chat" %} Написать продавцу</a>
+          {% endif %}
+          {% if seller_profile.show_phone and seller_profile.phone %}
+            <a href="tel:{{ seller_profile.phone }}" class="btn btn-outline w-full">
+            {% include "components/icon.html" with name="phone" %} {{ seller_profile.phone }}</a>
+          {% endif %}
+          {% if seller_profile.telegram %}
+            <a href="https://t.me/{{ seller_profile.telegram }}"
+               rel="noopener noreferrer"
+               target="_blank"
+               class="btn btn-outline w-full">Написать в Telegram ↗</a>
+          {% endif %}
+        {% elif not user.is_authenticated %}
+          <a class="btn btn-primary w-full"
+             href="{% url 'login' %}?next={{ request.path|urlencode }}">Войти и связаться</a>
+        {% endif %}
+        {% if user.is_authenticated %}
+          <form method="post"
+                action="{% url 'ads:toggle_favorite' ad.pk %}"
+                data-favorite>
+            {% csrf_token %}
+            <button type="submit"
+                    class="btn btn-quiet w-full favorite-wide {% if ad.is_favorite %}is-active{% endif %}"
+                    aria-pressed="{% if ad.is_favorite %}true{% else %}false{% endif %}">
+              {% include "components/icon.html" with name="heart" %}
+              <span data-favorite-label>{% if ad.is_favorite %}В избранном{% else %}В избранное{% endif %}</span>
+            </button>
+          </form>
+        {% endif %}
+        <div class="seller-block">
+          <a href="{% url 'ads:user_profile' ad.author.username %}"
+             class="seller-person">
+            <span class="avatar">{{ ad.author.first_name|default:ad.author.username|first|upper }}</span>
+            <span>
+              <strong>{{ ad.author.get_full_name|default:ad.author.username }}</strong>
+              <small>
+                {{ seller_profile.get_role_display }}{% if seller_profile.faculty %} · {{ seller_profile.faculty }}{% endif %}
+              </small>
+            </span>
+            {% include "components/icon.html" with name="chevron" %}
+          </a>
+          <div class="seller-rating">
+            {% include "components/icon.html" with name="star" %}
+            {% if rating.count %}
+              <strong>{{ rating.average|floatformat:1 }}</strong>
+              <span>Отзывов: {{ rating.count }}</span>
+            {% else %}
+              <span>Пока нет отзывов</span>
+            {% endif %}
+          </div>
+          <p class="seller-extra">На доске с {{ ad.author.date_joined|date:'M Y' }} · <a href="{% url 'ads:user_profile' ad.author.username %}">Объявлений: {{ seller_ads_count }}</a></p>
+        </div>
+        {% if user.is_authenticated and ad.contact_info %}
+          <p class="muted contact-text">{{ ad.contact_info }}</p>
+        {% endif %}
+      </div>
+      <div class="safety-note">
+        {% include "components/icon.html" with name="lock" %}
+        <p>Встречайтесь в кампусе. Проверяйте вещь до оплаты и не сообщайте коды из SMS.</p>
+      </div>
+      {% if can_contact and not existing_conversation %}
+        <form class="contact-compose"
+              id="contact-form"
+              action="{% url 'ads:contact_seller' ad.pk %}"
+              method="post">
+          {% csrf_token %}
+          <span class="eyebrow subtle">ДАВАЙТЕ ДОГОВОРИМСЯ</span>
+          <h2>Спросите у продавца</h2>
+          <p>{{ ad.author.first_name|default:ad.author.username }} получит ваше сообщение в личной переписке.</p>
+          <div class="question-chips" role="group" aria-label="Быстрые вопросы">
+            <button type="button"
+                    data-question="Здравствуйте! Объявление ещё актуально?">Ещё актуально?</button>
+            <button type="button"
+                    data-question="Здравствуйте! Когда можно встретиться и посмотреть?">Когда встречаемся?</button>
+            <button type="button"
+                    data-question="Здравствуйте! Подскажите, пожалуйста, подробнее о состоянии.">Какое состояние?</button>
+          </div>
+          <label class="sr-only" for="contact-text">Сообщение продавцу</label>
+          <textarea name="text"
+                    id="contact-text"
+                    rows="3"
+                    maxlength="4000"
+                    required
+                    placeholder="Здравствуйте! Объявление ещё актуально?">{{ message_form.text.value|default_if_none:"" }}</textarea>
+          {% if message_form.errors %}<p class="messenger-error">{{ message_form.text.errors|striptags }}</p>{% endif %}
+          <button class="btn btn-primary w-full"
+                  type="submit">Начать разговор {% include "components/icon.html" with name="send" %}</button>
+          <small>{% include "components/icon.html" with name="lock" %} Сообщение увидит только собеседник</small>
+        </form>
+      {% endif %}
+    </aside>
+  </div>
+  {% if ad.cover %}
+    <dialog class="photo-viewer gallery-viewer" data-photo-viewer aria-label="Фотографии объявления">
+      <header class="gallery-toolbar"><span data-gallery-count aria-live="polite"></span><div class="gallery-actions"><button type="button" data-gallery-zoom aria-pressed="false" aria-label="Увеличить фото">Увеличить +</button><button type="button" data-close-viewer aria-label="Закрыть фотографии">Закрыть ×</button></div></header>
+      <div class="gallery-stage"><button type="button" data-gallery-prev aria-label="Предыдущее фото">←</button><div class="gallery-image-viewport" data-gallery-viewport><img src="{{ ad.cover.url }}" alt="{{ ad.title }}" data-gallery-image draggable="false"></div><button type="button" data-gallery-next aria-label="Следующее фото">→</button></div>
+      <div class="gallery-thumbs" data-gallery-thumbs aria-label="Выбрать фотографию"></div>
+    </dialog>
+  {% endif %}
+  {% if recommended_ads %}
+    <section class="related-section">
+      <div class="section-toolbar">
+        <h2>Ещё в этой категории</h2>
+      </div>
+      <div class="listing-grid related-grid">
+        {% for ad in recommended_ads %}
+          {% include "components/card.html" %}
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
 {% endblock %}

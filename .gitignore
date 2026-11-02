@@ -1,0 +1,20 @@
+.venv/
+venv/
+.vs/
+__pycache__/
+*.py[cod]
+*.sqlite3
+.env
+media/
+staticfiles/
+node_modules/
+backups/
+*.log
+artifacts/
+/*.doc
+/*.docx
+/*.pdf
+
+
+# Disposable HTML fixtures generated only for local visual checks.
+ads/static/ads/_support-*-preview.html

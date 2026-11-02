@@ -1,23 +1,29 @@
 {% extends "base.html" %}
-
-{% block title %}Оставить отзыв{% endblock %}
-
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">Отзыв для {{ to_user.username }}</h5>
-            </div>
-            <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
-                    {{ form.as_p }}
-                    <button type="submit" class="btn btn-success">Отправить</button>
-                    <a href="{% url 'ads:user_profile' to_user.username %}" class="btn btn-outline-secondary">Отмена</a>
-                </form>
-            </div>
+  <div class="surface auth-surface">
+    <span class="eyebrow subtle">ОПЫТ ВЗАИМОДЕЙСТВИЯ</span>
+    <h1>Отзыв о {{ to_user.first_name|default:to_user.username }}</h1>
+    <p class="muted">Отзыв можно оставить после принятия отклика. Один отзыв на пользователя; принятие отклика не подтверждает совершение сделки.</p>
+    <form method="post">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+      <fieldset class="micro-rating" data-peek-rating>
+        <legend>Как всё прошло? <span class="required">*</span></legend>
+        <div class="micro-rating-row">
+          <span class="micro-rating-tip" data-rating-tip aria-hidden="true"></span>
+          {% for choice in form.rating %}
+            <label class="micro-rating-choice" data-rating-value="{{ choice.data.value }}">
+              {{ choice.tag }}
+              <span class="micro-rating-lift"><span class="micro-rating-glyph">{% include "components/icon.html" with name="star" %}</span></span>
+              <span class="sr-only">{{ choice.choice_label }} из 5</span>
+            </label>
+          {% endfor %}
         </div>
-    </div>
-</div>
+        <p class="micro-rating-caption" data-rating-caption aria-live="polite">Выбери оценку от 1 до 5</p>
+        {{ form.rating.errors }}
+      </fieldset>
+      <div class="form-field"><label for="{{ form.text.id_for_label }}">Расскажи о своём опыте</label>{{ form.text }}{{ form.text.errors }}</div>
+      <button class="btn btn-primary" type="submit">Опубликовать отзыв</button>
+    </form>
+  </div>
 {% endblock %}

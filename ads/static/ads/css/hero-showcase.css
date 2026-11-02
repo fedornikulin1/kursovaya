@@ -1,0 +1,722 @@
+/* Original CSS/SVG implementation, inspired by the public Pro previews; no Pro source. */
+.campus-showcase {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 28px;
+  margin: 0 0 26px;
+  color: #fff;
+  background:
+    radial-gradient(ellipse at 0% 100%, #0ed7d5 0%, transparent 58%),
+    radial-gradient(ellipse at 100% 90%, #ee2ac8 0%, transparent 63%),
+    linear-gradient(115deg, #126bfb 0%, #2067f1 45%, #a845ed 100%);
+}
+.showcase-stage {
+  display: grid;
+  grid-template-columns: 1.02fr 1fr;
+  gap: 34px;
+  align-items: center;
+  min-height: 610px;
+  padding: 45px 55px 132px;
+}
+.showcase-copy {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+}
+.showcase-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 1.7px;
+  font-size: 10px;
+  font-weight: 650;
+}
+.showcase-kicker > i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffe066;
+  box-shadow: 0 0 0 4px #ffffff16;
+}
+.showcase-title {
+  font-size: clamp(42px, 4.2vw, 68px);
+  font-weight: 800;
+  letter-spacing: -2.5px;
+  line-height: 1.08;
+  margin: 25px 0 21px;
+  color: #fff;
+  cursor: default;
+}
+.showcase-title .showcase-lead {
+  display: block;
+  white-space: nowrap;
+}
+.showcase-title .showcase-accent {
+  display: block;
+  min-height: 1.19em;
+  color: #fff074;
+  white-space: nowrap;
+  font-style: normal;
+}
+.glyph-cell {
+  position: relative;
+  display: inline-block;
+  vertical-align: top;
+  height: 1.15em;
+  line-height: 1.15em;
+  overflow: hidden;
+}
+.glyph-measure {
+  visibility: hidden;
+  white-space: pre;
+}
+.glyph-strip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-width: 100%;
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+.glyph-symbol {
+  height: 1.15em;
+  line-height: 1.15em;
+  display: block;
+  text-align: center;
+  flex: none;
+  white-space: pre;
+}
+.glyph-cell.is-settled .glyph-strip {
+  will-change: auto;
+}
+.showcase-copy > p {
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.85;
+  max-width: 420px;
+}
+.showcase-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 26px;
+}
+.showcase-actions .btn {
+  background: #ffe066;
+  color: #1b2b4b;
+  border-color: #ffe066;
+  border-radius: 12px;
+  padding: 15px 23px;
+  min-height: 52px;
+  font-size: 13px;
+  box-shadow: 0 7px 20px #173c771c;
+}
+.showcase-actions .btn:hover {
+  background: #ffeb9b;
+  border-color: #ffeb9b;
+  transform: translateY(-2px);
+}
+.showcase-actions > a:last-child {
+  color: #fff;
+  font-size: 12px;
+  text-decoration: underline;
+  text-decoration-color: #ffffff66;
+  text-underline-offset: 5px;
+}
+.showcase-foot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  color: #fff;
+  font-size: 10px;
+  line-height: 1.8;
+  margin-top: 25px;
+}
+.showcase-foot > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.showcase-foot > span > b {
+  font-size: 20px;
+  font-weight: 400;
+}
+.showcase-motion-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  color: #fff;
+  background: #153da826;
+  border: 1px solid #ffffff66;
+  border-radius: 9px;
+  padding: 7px 11px;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+.showcase-motion-toggle:hover {
+  background: #153da84a;
+}
+.showcase-motion-toggle:disabled {
+  cursor: default;
+  opacity: 0.8;
+}
+.campus-showcase a:focus-visible,
+.campus-showcase button:focus-visible {
+  outline: 3px solid #fff074;
+  outline-offset: 4px;
+}
+.showcase-gallery {
+  min-width: 0;
+  position: relative;
+  z-index: 2;
+  outline: 0;
+}
+.showcase-gallery-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 0 20px;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: #fff;
+}
+.showcase-gallery-heading > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 650;
+}
+.showcase-live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fff074;
+}
+.showcase-gallery-heading > small {
+  letter-spacing: 0;
+  font-size: 10px;
+  color: #ffffffbd;
+}
+.showcase-deck {
+  position: relative;
+  height: 355px;
+  margin: 20px 0 14px;
+  perspective: 1000px;
+  touch-action: pan-y;
+  isolation: isolate;
+}
+.showcase-card {
+  position: absolute;
+  top: 0;
+  left: 12%;
+  width: 76%;
+  height: 100%;
+  border: 2px solid #ffffffd9;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #17385d;
+  box-shadow: 0 20px 38px #20307636;
+  transform-origin: 50% 80%;
+  transition:
+    transform 720ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 500ms ease,
+    filter 600ms;
+  display: block;
+  color: #fff;
+  will-change: transform;
+}
+.showcase-card > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+.showcase-card:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    #12213e22 0%,
+    transparent 28%,
+    #111d3a20 50%,
+    #0e1735ef 100%
+  );
+  pointer-events: none;
+}
+.showcase-card[data-position="front"] {
+  transform: translate3d(0, 0, 40px) rotate(-5deg);
+  z-index: 3;
+  opacity: 1;
+  filter: none;
+}
+.showcase-card[data-position="next"] {
+  transform: translate3d(62px, 9px, -30px) rotate(12deg) scale(0.9);
+  z-index: 2;
+  opacity: 0.84;
+  filter: brightness(0.88);
+  pointer-events: none;
+}
+.showcase-card[data-position="previous"] {
+  transform: translate3d(-62px, 11px, -55px) rotate(-14deg) scale(0.87);
+  z-index: 1;
+  opacity: 0.8;
+  filter: brightness(0.83);
+  pointer-events: none;
+}
+.showcase-card[data-position="away"] {
+  transform: translate3d(0, 24px, -150px) rotate(4deg) scale(0.78);
+  opacity: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.showcase-card[data-position="front"]:hover {
+  box-shadow: 0 25px 45px #1928524a;
+}
+.showcase-card-category {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 2;
+  padding: 6px 10px;
+  border: 1px solid #ffffff5c;
+  background: #12243f42;
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  font-size: 9px;
+  color: #fff;
+}
+.showcase-card-open {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  background: #ffffffed;
+  color: #23417b;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+}
+.showcase-card-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  padding: 20px;
+  color: #fff;
+}
+.showcase-card-caption > small {
+  display: block;
+  font-size: 9px;
+  line-height: 1.6;
+  color: #ffffffbd;
+  margin-bottom: 7px;
+}
+.showcase-card-caption > strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 19px;
+  line-height: 1.25;
+  letter-spacing: -0.4px;
+  max-width: 100%;
+  color: #fff;
+}
+.showcase-card-caption > b {
+  display: block;
+  color: #ffe475;
+  font-size: 19px;
+  margin-top: 11px;
+  letter-spacing: -0.4px;
+}
+.showcase-card[data-position]:not([data-position="front"])
+  .showcase-card-caption {
+  opacity: 0;
+}
+.showcase-card-caption {
+  transition: opacity 350ms ease;
+}
+.showcase-gallery-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 13px;
+  padding: 0 20px;
+  margin-top: 12px;
+}
+.showcase-gallery-arrows {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.showcase-gallery-arrows > button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid #ffffff66;
+  background: #ffffff1a;
+  color: #fff;
+  cursor: pointer;
+  font-size: 18px;
+  transition: background 0.2s;
+}
+.showcase-gallery-arrows > button:hover {
+  background: #ffffff36;
+}
+.showcase-gallery-arrows > span {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  min-width: 30px;
+  text-align: center;
+  color: #ffffffd6;
+}
+.showcase-gallery-dots {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+.showcase-gallery-dots > button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+.showcase-gallery-dots > button > i {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 8px;
+  background: #ffffff5c;
+  transition:
+    width 0.25s,
+    background 0.25s;
+}
+.showcase-gallery-dots > button[aria-current="true"] > i {
+  width: 17px;
+  background: #fff074;
+}
+.showcase-gallery-progress {
+  display: block;
+  margin: 17px 20px 0;
+  height: 2px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: #ffffff2b;
+}
+.showcase-gallery-progress > i {
+  display: block;
+  background: #fff074;
+  width: 100%;
+  height: 100%;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.showcase-gallery-empty {
+  padding: 50px 30px;
+  line-height: 1.8;
+  border: 1px dashed #ffffff70;
+  border-radius: 20px;
+  background: #ffffff12;
+}
+.showcase-gallery-empty > a {
+  display: block;
+  color: #fff074;
+}
+.showcase-ribbon {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  height: 145px;
+  pointer-events: none;
+}
+.showcase-ribbon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+.showcase-ribbon text {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: 1.3px;
+  fill: #233250;
+  dominant-baseline: central;
+}
+.showcase-ribbon-base {
+  fill: none;
+  stroke: url(#campus-ribbon-satin);
+  stroke-width: 58;
+  filter: drop-shadow(0 8px 7px #46357117);
+}
+.showcase-ribbon-edge {
+  fill: none;
+  stroke: #fff0a1;
+  stroke-width: 1.3;
+  opacity: 0.6;
+  transform: translateY(-27px);
+}
+@media (min-width: 1600px) {
+  .showcase-stage {
+    padding: 55px 65px 140px;
+    gap: 55px;
+    min-height: 655px;
+  }
+  .showcase-deck {
+    height: 390px;
+  }
+  .showcase-card-caption > strong {
+    font-size: 23px;
+  }
+  .showcase-card-caption > b {
+    font-size: 22px;
+  }
+}
+@media (max-width: 1100px) {
+  .showcase-stage {
+    gap: 22px;
+    padding: 45px 32px 125px;
+    min-height: 590px;
+  }
+  .showcase-title {
+    font-size: clamp(32px, 4.65vw, 48px);
+    letter-spacing: -1.8px;
+  }
+  .showcase-deck {
+    height: 320px;
+  }
+  .showcase-card {
+    left: 12%;
+    width: 76%;
+    border-radius: 18px;
+  }
+  .showcase-card[data-position="next"] {
+    transform: translate3d(45px, 9px, -30px) rotate(12deg) scale(0.9);
+  }
+  .showcase-card[data-position="previous"] {
+    transform: translate3d(-45px, 11px, -55px) rotate(-14deg) scale(0.87);
+  }
+  .showcase-card-caption {
+    padding: 16px;
+  }
+  .showcase-card-caption > strong {
+    font-size: 16px;
+  }
+  .showcase-card-caption > b {
+    font-size: 16px;
+  }
+  .showcase-copy > p {
+    font-size: 12px;
+  }
+  .showcase-actions {
+    gap: 15px;
+  }
+  .showcase-actions > a:last-child {
+    font-size: 11px;
+  }
+  .showcase-gallery-heading {
+    font-size: 8px;
+    padding-inline: 10px;
+  }
+  .showcase-gallery-heading > small {
+    font-size: 9px;
+  }
+  .showcase-gallery-controls {
+    padding-inline: 9px;
+    gap: 5px;
+  }
+  .showcase-gallery-dots > button {
+    width: 20px;
+  }
+  .showcase-gallery-arrows {
+    gap: 4px;
+  }
+  .showcase-gallery-arrows > button {
+    width: 34px;
+    height: 34px;
+  }
+}
+@media (max-width: 700px) {
+  .campus-showcase {
+    display: flex;
+    flex-direction: column;
+    border-radius: 22px;
+    padding-bottom: 22px;
+  }
+  .showcase-stage {
+    display: contents;
+  }
+  .showcase-copy {
+    order: 0;
+    padding: 30px 25px 0;
+  }
+  .showcase-title {
+    font-size: clamp(30px, 10.1vw, 47px);
+    margin: 21px 0 18px;
+    letter-spacing: -1.7px;
+  }
+  .showcase-copy > p {
+    font-size: 12px;
+    line-height: 1.8;
+  }
+  .showcase-kicker {
+    font-size: 8px;
+    letter-spacing: 1.4px;
+  }
+  .showcase-actions {
+    margin-top: 23px;
+    gap: 14px;
+  }
+  .showcase-actions .btn {
+    padding: 13px 19px;
+    min-height: 47px;
+    font-size: 12px;
+  }
+  .showcase-foot {
+    font-size: 9px;
+    margin-top: 20px;
+    gap: 12px;
+  }
+  .showcase-ribbon {
+    position: relative;
+    order: 1;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    height: 112px;
+    margin: 16px -25% 6px;
+    width: 150%;
+    align-self: center;
+  }
+  .showcase-gallery {
+    order: 2;
+    margin: 5px 18px 0;
+  }
+  .showcase-deck {
+    height: 320px;
+    margin: 22px 0 16px;
+  }
+  .showcase-card {
+    left: 13%;
+    width: 74%;
+  }
+  .showcase-card-category {
+    top: 13px;
+    left: 13px;
+    font-size: 8px;
+  }
+  .showcase-card-caption > strong {
+    font-size: 17px;
+  }
+  .showcase-card-caption > b {
+    font-size: 18px;
+  }
+  .showcase-gallery-controls {
+    padding-inline: 14px;
+    margin-top: 15px;
+    gap: 8px;
+  }
+  .showcase-gallery-heading {
+    padding-inline: 15px;
+  }
+  .showcase-gallery-arrows > button {
+    width: 38px;
+    height: 38px;
+  }
+  .showcase-gallery-dots > button {
+    width: 22px;
+  }
+  .showcase-gallery-progress {
+    margin-inline: 15px;
+  }
+  .showcase-ribbon text {
+    font-size: 23px;
+  }
+  .showcase-gallery-heading > small {
+    font-size: 9px;
+  }
+}
+@media (max-width: 380px) {
+  .showcase-copy {
+    padding-inline: 20px;
+  }
+  .showcase-title {
+    font-size: clamp(29px, 10vw, 38px);
+  }
+  .showcase-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .showcase-gallery {
+    margin-inline: 13px;
+  }
+  .showcase-deck {
+    height: 285px;
+  }
+  .showcase-card-caption {
+    padding: 14px;
+  }
+  .showcase-card-caption > strong {
+    font-size: 15px;
+  }
+  .showcase-card-caption > b {
+    font-size: 16px;
+  }
+  .showcase-card[data-position="next"] {
+    transform: translate3d(35px, 8px, -30px) rotate(12deg) scale(0.9);
+  }
+  .showcase-card[data-position="previous"] {
+    transform: translate3d(-35px, 10px, -55px) rotate(-14deg) scale(0.87);
+  }
+  .showcase-gallery-controls {
+    padding-inline: 7px;
+    gap: 5px;
+  }
+  .showcase-gallery-dots > button {
+    width: 18px;
+  }
+  .showcase-gallery-arrows {
+    gap: 4px;
+  }
+  .showcase-gallery-arrows > button {
+    width: 34px;
+    height: 34px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .showcase-card,
+  .showcase-card-caption,
+  .showcase-actions .btn,
+  .showcase-gallery-dots > button > i {
+    transition: none !important;
+  }
+  .glyph-strip {
+    will-change: auto;
+  }
+}
+.reduce-motion .glyph-strip {
+  will-change: auto;
+}

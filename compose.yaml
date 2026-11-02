@@ -1,0 +1,33 @@
+# Local PostgreSQL demonstration. Set POSTGRES_PASSWORD in .env before running.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: uniboard
+      POSTGRES_USER: uniboard
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U uniboard"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DEBUG: "true"
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      DATABASE_URL: postgresql://uniboard:${POSTGRES_PASSWORD}@db:5432/uniboard
+      ALLOWED_HOSTS: localhost,127.0.0.1
+    command: sh -c "python manage.py migrate --noinput && python manage.py seed_categories && python manage.py collectstatic --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2"
+    volumes:
+      - media_data:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  postgres_data:
+  media_data:

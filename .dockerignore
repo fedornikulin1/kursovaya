@@ -1,0 +1,13 @@
+.git
+.vs
+.venv
+venv
+node_modules
+.env
+*.sqlite3
+backups
+media
+staticfiles
+artifacts
+**/__pycache__
+**/*.pyc

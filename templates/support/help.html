@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Помощь — ДоскаСВФУ{% endblock %}
+{% block body_class %}help-page{% endblock %}
+{% block content %}
+  <section class="help-hero">
+    <div>
+      <span class="eyebrow">ПОДДЕРЖКА СВОИХ</span>
+      <h1>Разберёмся <em>вместе.</em></h1>
+      <p>Ответы на частые вопросы и люди, которые помогут.</p>
+      <label class="help-search">
+        {% include "components/icon.html" with name="search" %}
+        <input type="search" placeholder="Например, как разместить объявление" aria-label="Поиск по частым вопросам" data-faq-search>
+      </label>
+      <div class="help-mobile-actions"><a href="{% url 'support:create' %}">Задать вопрос →</a><a href="{% url 'support:tickets' %}">Мои обращения</a></div>
+    </div>
+    <div class="help-hero-art" aria-hidden="true">
+      <span class="help-art-question">?</span>
+      <span class="help-art-chat">{% include "components/icon.html" with name="chat" %}</span>
+      <span class="help-art-check">{% include "components/icon.html" with name="check" %}</span>
+      <small>Свои помогут</small>
+    </div>
+  </section>
+  <div class="help-layout">
+    <section class="help-faq" aria-label="Частые вопросы">
+      <div class="help-section-heading"><div><span class="eyebrow subtle">МОЖЕТ, ОТВЕТ УЖЕ ЗДЕСЬ</span><h2>Частые вопросы</h2></div></div>
+      <div class="help-topic-tabs" role="group" aria-label="Темы вопросов">
+        <button type="button" class="is-active" data-faq-topic="all" aria-pressed="true">Все вопросы</button>
+        {% for value, label in topics %}<button type="button" data-faq-topic="{{ value }}" aria-pressed="false">{{ label }}</button>{% endfor %}
+      </div>
+      <div class="faq-list">
+        {% for faq in faqs %}
+          <details class="faq-item" data-faq data-topic="{{ faq.topic }}">
+            <summary>{{ faq.question }}<span>+</span></summary>
+            <div class="faq-answer">{{ faq.answer|linebreaks }}</div>
+          </details>
+        {% empty %}<p class="help-empty">Готовим ответы на частые вопросы. Пока можно написать в поддержку.</p>{% endfor %}
+      </div>
+      <div class="help-empty" data-faq-empty hidden>
+        <h3>Пока не нашли ответ</h3><p>Попробуйте другой запрос или напишите нам.</p><a href="{% url 'support:create' %}">Задать вопрос →</a>
+      </div>
+    </section>
+    <aside class="help-side">
+      <div class="help-contact-card">
+        <span class="help-card-icon">{% include "components/icon.html" with name="chat" %}</span>
+        <h2>Нужна помощь<br> с вашей ситуацией?</h2>
+        <p>Напишите нам. Вопрос и ответы останутся в личном обращении.</p>
+        <a class="btn btn-primary w-full" href="{% url 'support:create' %}">Задать вопрос {% include "components/icon.html" with name="arrow" %}</a>
+        <a class="help-my-tickets" href="{% url 'support:tickets' %}">Мои обращения{% if unread_support_answers %}<b>{{ unread_support_answers }} новых ответов</b>{% endif %}</a>
+        <small>{% include "components/icon.html" with name="user" %} Отвечает сотрудник поддержки</small>
+      </div>
+      <div class="help-safety-card">{% include "components/icon.html" with name="lock" %}<div><strong>Личное остаётся личным</strong><p>Обращение видите только вы и сотрудники с доступом к поддержке.</p></div></div>
+    </aside>
+  </div>
+{% endblock %}

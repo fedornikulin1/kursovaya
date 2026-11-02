@@ -1,0 +1,14 @@
+<details class="campus-meeting" {% if meeting_expanded %}open{% endif %}
+         data-meeting-panel
+         data-meeting-url="{% url 'campus:meeting_propose' meeting_thread.pk %}"
+         data-revision="{{ meeting_revision }}">
+  <summary><span>{% include "components/icon.html" with name="pin" %} {% if active_meeting %}{{ active_meeting.status_label }}{% else %}Договориться о встрече{% endif %}</span><small>Место, время и бронь <b>⌄</b></small></summary>
+  <div class="campus-meeting-content">
+    {% for meeting in campus_meetings %}<article class="meeting-card"><span class="study-pill">{{ meeting.status_label }}</span><strong>{{ meeting.place }}</strong><p>{{ meeting.starts_at|date:"d.m.Y H:i" }} — {{ meeting.ends_at|date:"H:i" }} · Якутск</p>{% if meeting.place.meeting_hint %}<p class="field-help">{{ meeting.place.meeting_hint }}</p>{% endif %}{% if meeting.return_on %}<p>Вернуть до {{ meeting.return_on|date:"d.m.Y" }}{% if meeting.is_overdue %}<b class="meeting-overdue"> · Срок возврата прошёл</b>{% endif %}</p>{% endif %}<form method="post"
+      action="{% url 'campus:meeting_update' meeting.pk %}"
+      class="meeting-actions">{% csrf_token %}{% if meeting.can_confirm %}<button class="btn btn-primary" name="action" value="confirm">Подтвердить и забронировать</button>{% endif %}{% if meeting.can_handover %}<button class="btn btn-primary" name="action" value="handover">Я передал вещь</button>{% endif %}{% if meeting.can_receive %}<button class="btn btn-primary" name="action" value="receive">Подтверждаю получение</button>{% endif %}{% if meeting.can_return %}<button class="btn btn-outline" name="action" value="return">Я вернул вещь</button>{% endif %}{% if meeting.can_finish_return %}<button class="btn btn-primary" name="action" value="finish_return">Подтверждаю возврат</button>{% endif %}{% if meeting.can_cancel %}<button class="btn btn-quiet" name="action" value="cancel">Отменить встречу</button>{% endif %}</form></article>{% endfor %}
+    {% if not active_meeting and meeting_thread.ad.status == "active" %}<form method="post"
+      action="{% url 'campus:meeting_propose' meeting_thread.pk %}"
+      class="meeting-proposal">{% csrf_token %}<h3>Предложить время</h3><p class="field-help">Все даты — {{ meeting_timezone }}. Второй участник должен подтвердить предложение. До подтверждения брони нет.</p>{% if meeting_thread.ad.available_from %}<p class="field-help">Автор готов встретиться {{ meeting_thread.ad.available_from|date:"d.m H:i" }} — {{ meeting_thread.ad.available_until|date:"d.m H:i" }}.</p>{% endif %}{% with form=meeting_form %}{% include "components/fields.html" %}{% endwith %}<button class="btn btn-primary">Предложить встречу</button></form>{% endif %}
+  </div>
+</details>

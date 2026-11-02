@@ -1,0 +1,3439 @@
+openapi: 3.0.3
+info:
+  title: ДоскаСВФУ API
+  version: 1.0.0
+  description: API университетского маркетплейса для сайта и будущего мобильного приложения.
+paths:
+  /api/schema/:
+    get:
+      operationId: schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - ug
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - schema
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/ads/:
+    get:
+      operationId: v1_ads_list
+      parameters:
+      - in: query
+        name: campus_place
+        schema:
+          type: integer
+      - in: query
+        name: category
+        schema:
+          type: integer
+      - in: query
+        name: course
+        schema:
+          type: integer
+      - in: query
+        name: is_study
+        schema:
+          type: boolean
+      - in: query
+        name: kind
+        schema:
+          type: string
+          title: Тип объявления
+          enum:
+          - buy
+          - exchange
+          - give
+          - lend
+          - roommate
+          - sell
+          - service
+        description: |-
+          * `sell` - Продам
+          * `buy` - Куплю
+          * `service` - Услуга
+          * `roommate` - Ищу соседа
+          * `exchange` - Обменяю
+          * `give` - Отдам бесплатно
+          * `lend` - Дам на время
+      - in: query
+        name: ordering
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - -date
+            - -price
+            - date
+            - price
+        description: |-
+          Сортировка
+
+          * `date` - Дата
+          * `-date` - Дата (по убыванию)
+          * `price` - Цена
+          * `-price` - Цена (по убыванию)
+        explode: false
+        style: form
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: price_max
+        schema:
+          type: number
+      - in: query
+        name: price_min
+        schema:
+          type: number
+      - in: query
+        name: price_type
+        schema:
+          type: string
+          title: Формат цены
+          enum:
+          - fixed
+          - free
+          - negotiable
+        description: |-
+          * `fixed` - Фиксированная
+          * `free` - Бесплатно
+          * `negotiable` - Договорная
+      - in: query
+        name: q
+        schema:
+          type: string
+        description: Поиск
+      - in: query
+        name: semester
+        schema:
+          type: integer
+      - in: query
+        name: subject
+        schema:
+          type: string
+      - in: query
+        name: title
+        schema:
+          type: string
+        description: Название
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdList'
+          description: ''
+    post:
+      operationId: v1_ads_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ad'
+          description: ''
+  /api/v1/ads/{id}/:
+    get:
+      operationId: v1_ads_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Объявление.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ad'
+          description: ''
+    put:
+      operationId: v1_ads_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Объявление.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ad'
+          description: ''
+    patch:
+      operationId: v1_ads_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Объявление.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAdRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAdRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAdRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ad'
+          description: ''
+    delete:
+      operationId: v1_ads_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Объявление.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/ads/{id}/contacts/:
+    get:
+      operationId: v1_ads_contacts_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Объявление.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contacts'
+          description: ''
+  /api/v1/ads/{id}/favorite/:
+    post:
+      operationId: v1_ads_favorite_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Объявление.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoriteState'
+          description: ''
+    delete:
+      operationId: v1_ads_favorite_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Объявление.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/ads/{id}/photos/:
+    post:
+      operationId: v1_ads_photos_create
+      parameters:
+      - in: query
+        name: campus_place
+        schema:
+          type: integer
+      - in: query
+        name: category
+        schema:
+          type: integer
+      - in: query
+        name: course
+        schema:
+          type: integer
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Объявление.
+        required: true
+      - in: query
+        name: is_study
+        schema:
+          type: boolean
+      - in: query
+        name: kind
+        schema:
+          type: string
+          title: Тип объявления
+          enum:
+          - buy
+          - exchange
+          - give
+          - lend
+          - roommate
+          - sell
+          - service
+        description: |-
+          * `sell` - Продам
+          * `buy` - Куплю
+          * `service` - Услуга
+          * `roommate` - Ищу соседа
+          * `exchange` - Обменяю
+          * `give` - Отдам бесплатно
+          * `lend` - Дам на время
+      - in: query
+        name: ordering
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - -date
+            - -price
+            - date
+            - price
+        description: |-
+          Сортировка
+
+          * `date` - Дата
+          * `-date` - Дата (по убыванию)
+          * `price` - Цена
+          * `-price` - Цена (по убыванию)
+        explode: false
+        style: form
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: price_max
+        schema:
+          type: number
+      - in: query
+        name: price_min
+        schema:
+          type: number
+      - in: query
+        name: price_type
+        schema:
+          type: string
+          title: Формат цены
+          enum:
+          - fixed
+          - free
+          - negotiable
+        description: |-
+          * `fixed` - Фиксированная
+          * `free` - Бесплатно
+          * `negotiable` - Договорная
+      - in: query
+        name: q
+        schema:
+          type: string
+        description: Поиск
+      - in: query
+        name: semester
+        schema:
+          type: integer
+      - in: query
+        name: subject
+        schema:
+          type: string
+      - in: query
+        name: title
+        schema:
+          type: string
+        description: Название
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhotoUploadRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PhotoUploadRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PhotoUploadRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedImageList'
+          description: ''
+  /api/v1/ads/favorites/:
+    get:
+      operationId: v1_ads_favorites_list
+      parameters:
+      - in: query
+        name: campus_place
+        schema:
+          type: integer
+      - in: query
+        name: category
+        schema:
+          type: integer
+      - in: query
+        name: course
+        schema:
+          type: integer
+      - in: query
+        name: is_study
+        schema:
+          type: boolean
+      - in: query
+        name: kind
+        schema:
+          type: string
+          title: Тип объявления
+          enum:
+          - buy
+          - exchange
+          - give
+          - lend
+          - roommate
+          - sell
+          - service
+        description: |-
+          * `sell` - Продам
+          * `buy` - Куплю
+          * `service` - Услуга
+          * `roommate` - Ищу соседа
+          * `exchange` - Обменяю
+          * `give` - Отдам бесплатно
+          * `lend` - Дам на время
+      - in: query
+        name: ordering
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - -date
+            - -price
+            - date
+            - price
+        description: |-
+          Сортировка
+
+          * `date` - Дата
+          * `-date` - Дата (по убыванию)
+          * `price` - Цена
+          * `-price` - Цена (по убыванию)
+        explode: false
+        style: form
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: price_max
+        schema:
+          type: number
+      - in: query
+        name: price_min
+        schema:
+          type: number
+      - in: query
+        name: price_type
+        schema:
+          type: string
+          title: Формат цены
+          enum:
+          - fixed
+          - free
+          - negotiable
+        description: |-
+          * `fixed` - Фиксированная
+          * `free` - Бесплатно
+          * `negotiable` - Договорная
+      - in: query
+        name: q
+        schema:
+          type: string
+        description: Поиск
+      - in: query
+        name: semester
+        schema:
+          type: integer
+      - in: query
+        name: subject
+        schema:
+          type: string
+      - in: query
+        name: title
+        schema:
+          type: string
+        description: Название
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdList'
+          description: ''
+  /api/v1/ads/mine/:
+    get:
+      operationId: v1_ads_mine_list
+      parameters:
+      - in: query
+        name: campus_place
+        schema:
+          type: integer
+      - in: query
+        name: category
+        schema:
+          type: integer
+      - in: query
+        name: course
+        schema:
+          type: integer
+      - in: query
+        name: is_study
+        schema:
+          type: boolean
+      - in: query
+        name: kind
+        schema:
+          type: string
+          title: Тип объявления
+          enum:
+          - buy
+          - exchange
+          - give
+          - lend
+          - roommate
+          - sell
+          - service
+        description: |-
+          * `sell` - Продам
+          * `buy` - Куплю
+          * `service` - Услуга
+          * `roommate` - Ищу соседа
+          * `exchange` - Обменяю
+          * `give` - Отдам бесплатно
+          * `lend` - Дам на время
+      - in: query
+        name: ordering
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - -date
+            - -price
+            - date
+            - price
+        description: |-
+          Сортировка
+
+          * `date` - Дата
+          * `-date` - Дата (по убыванию)
+          * `price` - Цена
+          * `-price` - Цена (по убыванию)
+        explode: false
+        style: form
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: price_max
+        schema:
+          type: number
+      - in: query
+        name: price_min
+        schema:
+          type: number
+      - in: query
+        name: price_type
+        schema:
+          type: string
+          title: Формат цены
+          enum:
+          - fixed
+          - free
+          - negotiable
+        description: |-
+          * `fixed` - Фиксированная
+          * `free` - Бесплатно
+          * `negotiable` - Договорная
+      - in: query
+        name: q
+        schema:
+          type: string
+        description: Поиск
+      - in: query
+        name: semester
+        schema:
+          type: integer
+      - in: query
+        name: subject
+        schema:
+          type: string
+      - in: query
+        name: title
+        schema:
+          type: string
+        description: Название
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdList'
+          description: ''
+  /api/v1/auth/logout/:
+    post:
+      operationId: v1_auth_logout_create
+      description: |-
+        Takes a token and blacklists it. Must be used with the
+        `rest_framework_simplejwt.token_blacklist` app installed.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenBlacklistRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenBlacklistRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenBlacklistRequest'
+        required: true
+      responses:
+        '200':
+          description: No response body
+  /api/v1/auth/register/:
+    post:
+      operationId: v1_auth_register_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/v1/auth/token/:
+    post:
+      operationId: v1_auth_token_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPairRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenObtainPair'
+          description: ''
+  /api/v1/auth/token/refresh/:
+    post:
+      operationId: v1_auth_token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/campus/meetings/:
+    get:
+      operationId: v1_campus_meetings_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMeetingList'
+          description: ''
+    post:
+      operationId: v1_campus_meetings_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeetingInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MeetingInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MeetingInputRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/campus/meetings/{id}/:
+    get:
+      operationId: v1_campus_meetings_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Встреча и передача.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/campus/meetings/{id}/transition/:
+    post:
+      operationId: v1_campus_meetings_transition_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Встреча и передача.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeetingActionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MeetingActionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MeetingActionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meeting'
+          description: ''
+  /api/v1/campus/places/:
+    get:
+      operationId: v1_campus_places_list
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Place'
+          description: ''
+  /api/v1/campus/places/{id}/:
+    get:
+      operationId: v1_campus_places_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Место в кампусе.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Place'
+          description: ''
+  /api/v1/campus/requests/:
+    get:
+      operationId: v1_campus_requests_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRequestList'
+          description: ''
+    post:
+      operationId: v1_campus_requests_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RequestRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Request'
+          description: ''
+  /api/v1/campus/requests/{id}/:
+    get:
+      operationId: v1_campus_requests_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Учебный запрос.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Request'
+          description: ''
+    put:
+      operationId: v1_campus_requests_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Учебный запрос.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RequestRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Request'
+          description: ''
+    patch:
+      operationId: v1_campus_requests_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Учебный запрос.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedRequestRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Request'
+          description: ''
+    delete:
+      operationId: v1_campus_requests_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Учебный запрос.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/campus/requests/{id}/matches/:
+    get:
+      operationId: v1_campus_requests_matches_list
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Учебный запрос.
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMatchList'
+          description: ''
+  /api/v1/campus/requests/{id}/offer/:
+    post:
+      operationId: v1_campus_requests_offer_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Учебный запрос.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OfferRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OfferRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OfferRequestRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+          description: ''
+  /api/v1/categories/:
+    get:
+      operationId: v1_categories_list
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+          description: ''
+  /api/v1/categories/{id}/:
+    get:
+      operationId: v1_categories_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Категория.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+  /api/v1/conversations/:
+    get:
+      operationId: v1_conversations_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedConversationList'
+          description: ''
+    post:
+      operationId: v1_conversations_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConversationCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConversationCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConversationCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+          description: ''
+  /api/v1/conversations/{id}/:
+    get:
+      operationId: v1_conversations_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this response.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+          description: ''
+  /api/v1/conversations/{id}/accept/:
+    post:
+      operationId: v1_conversations_accept_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this response.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+          description: ''
+  /api/v1/conversations/{id}/messages/:
+    get:
+      operationId: v1_conversations_messages_list
+      parameters:
+      - in: query
+        name: after
+        schema:
+          type: integer
+        description: Вернуть сообщения с id больше указанного, по возрастанию id.
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this response.
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMessageList'
+          description: ''
+    post:
+      operationId: v1_conversations_messages_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this response.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MessageInputRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MessageInputRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MessageInputRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: ''
+  /api/v1/conversations/{id}/read/:
+    post:
+      operationId: v1_conversations_read_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this response.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/me/:
+    get:
+      operationId: v1_me_retrieve
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: ''
+    patch:
+      operationId: v1_me_partial_update
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProfileRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProfileRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProfileRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: ''
+  /api/v1/photos/{id}/:
+    delete:
+      operationId: v1_photos_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/reviews/:
+    get:
+      operationId: v1_reviews_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: to_user
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReviewList'
+          description: ''
+    post:
+      operationId: v1_reviews_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: ''
+  /api/v1/reviews/{id}/:
+    get:
+      operationId: v1_reviews_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Отзыв.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: ''
+  /api/v1/support/tickets/:
+    get:
+      operationId: v1_support_tickets_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTicketList'
+          description: ''
+    post:
+      operationId: v1_support_tickets_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTicketRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateTicketRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateTicketRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+          description: ''
+  /api/v1/support/tickets/{id}/:
+    get:
+      operationId: v1_support_tickets_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Обращение.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+          description: ''
+  /api/v1/support/tickets/{id}/close/:
+    post:
+      operationId: v1_support_tickets_close_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Обращение.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+          description: ''
+  /api/v1/support/tickets/{id}/messages/:
+    get:
+      operationId: v1_support_tickets_messages_list
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Обращение.
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSupportMessageList'
+          description: ''
+    post:
+      operationId: v1_support_tickets_messages_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Обращение.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplyRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReplyRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReplyRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportMessage'
+          description: ''
+  /api/v1/support/tickets/{id}/read/:
+    post:
+      operationId: v1_support_tickets_read_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Обращение.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/support/tickets/{id}/reopen/:
+    post:
+      operationId: v1_support_tickets_reopen_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Обращение.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+          description: ''
+  /api/v1/users/{username}/:
+    get:
+      operationId: v1_users_retrieve
+      parameters:
+      - in: path
+        name: username
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicProfile'
+          description: ''
+components:
+  schemas:
+    ActionEnum:
+      enum:
+      - confirm
+      - cancel
+      - handover
+      - receive
+      - return
+      - finish_return
+      type: string
+      description: |-
+        * `confirm` - confirm
+        * `cancel` - cancel
+        * `handover` - handover
+        * `receive` - receive
+        * `return` - return
+        * `finish_return` - finish_return
+    Ad:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          title: Название
+          maxLength: 200
+        description:
+          type: string
+          title: Описание
+          maxLength: 10000
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+          title: Цена
+        price_type:
+          allOf:
+          - $ref: '#/components/schemas/PriceTypeEnum'
+          title: Формат цены
+        price_label:
+          type: string
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/KindEnum'
+          title: Тип объявления
+        status:
+          allOf:
+          - $ref: '#/components/schemas/AdStatusEnum'
+          title: Статус
+        image:
+          type: string
+          format: uri
+          nullable: true
+          title: Обложка
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/Image'
+          readOnly: true
+        category:
+          type: integer
+          title: Категория
+        category_name:
+          type: string
+          readOnly: true
+        author:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        location:
+          type: string
+          title: Место встречи
+          maxLength: 150
+        is_study:
+          type: boolean
+          title: Для учебного обмена
+        subject:
+          type: string
+          title: Предмет
+          maxLength: 120
+        course:
+          type: integer
+          maximum: 6
+          minimum: 1
+          nullable: true
+          title: Курс
+        semester:
+          type: integer
+          maximum: 12
+          minimum: 1
+          nullable: true
+          title: Семестр
+        campus_place:
+          type: integer
+          nullable: true
+          title: Место в кампусе
+        available_from:
+          type: string
+          format: date-time
+          nullable: true
+          title: Можно забрать с
+        available_until:
+          type: string
+          format: date-time
+          nullable: true
+          title: Можно забрать до
+        exchange_for:
+          type: string
+          title: На что обменяю
+          maxLength: 200
+        condition:
+          allOf:
+          - $ref: '#/components/schemas/ConditionEnum'
+          title: Состояние
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Создано
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Изменено
+        is_favorite:
+          type: boolean
+          readOnly: true
+          default: false
+      required:
+      - author
+      - category
+      - category_name
+      - created_at
+      - description
+      - id
+      - images
+      - is_favorite
+      - price_label
+      - title
+      - updated_at
+    AdRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: Название
+          maxLength: 200
+        description:
+          type: string
+          minLength: 1
+          title: Описание
+          maxLength: 10000
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+          title: Цена
+        price_type:
+          allOf:
+          - $ref: '#/components/schemas/PriceTypeEnum'
+          title: Формат цены
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/KindEnum'
+          title: Тип объявления
+        status:
+          allOf:
+          - $ref: '#/components/schemas/AdStatusEnum'
+          title: Статус
+        image:
+          type: string
+          format: binary
+          nullable: true
+          title: Обложка
+        category:
+          type: integer
+          title: Категория
+        location:
+          type: string
+          minLength: 1
+          title: Место встречи
+          maxLength: 150
+        is_study:
+          type: boolean
+          title: Для учебного обмена
+        subject:
+          type: string
+          title: Предмет
+          maxLength: 120
+        course:
+          type: integer
+          maximum: 6
+          minimum: 1
+          nullable: true
+          title: Курс
+        semester:
+          type: integer
+          maximum: 12
+          minimum: 1
+          nullable: true
+          title: Семестр
+        campus_place:
+          type: integer
+          nullable: true
+          title: Место в кампусе
+        available_from:
+          type: string
+          format: date-time
+          nullable: true
+          title: Можно забрать с
+        available_until:
+          type: string
+          format: date-time
+          nullable: true
+          title: Можно забрать до
+        exchange_for:
+          type: string
+          title: На что обменяю
+          maxLength: 200
+        condition:
+          allOf:
+          - $ref: '#/components/schemas/ConditionEnum'
+          title: Состояние
+      required:
+      - category
+      - description
+      - title
+    AdStatusEnum:
+      enum:
+      - draft
+      - active
+      - closed
+      - archived
+      type: string
+      description: |-
+        * `draft` - Черновик
+        * `active` - Опубликовано
+        * `closed` - Закрыто
+        * `archived` - В архиве
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Название
+          maxLength: 100
+        icon:
+          type: string
+          title: Иконка
+          maxLength: 24
+      required:
+      - id
+      - name
+    ConditionEnum:
+      enum:
+      - new
+      - used
+      - na
+      type: string
+      description: |-
+        * `new` - Новое
+        * `used` - Б/у
+        * `na` - Не применимо
+    Contacts:
+      type: object
+      properties:
+        phone:
+          type: string
+          nullable: true
+        telegram:
+          type: string
+          nullable: true
+        contact_info:
+          type: string
+      required:
+      - contact_info
+      - phone
+      - telegram
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        ad:
+          type: integer
+          readOnly: true
+        ad_title:
+          type: string
+          readOnly: true
+        seller:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        is_accepted:
+          type: boolean
+          readOnly: true
+          title: Отклик принят
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - ad
+      - ad_title
+      - created_at
+      - id
+      - is_accepted
+      - seller
+      - updated_at
+      - user
+    ConversationCreateRequest:
+      type: object
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        ad:
+          type: integer
+      required:
+      - ad
+      - text
+    CreateTicketRequest:
+      type: object
+      properties:
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 150
+        topic:
+          $ref: '#/components/schemas/TopicEnum'
+        text:
+          type: string
+          minLength: 1
+          maxLength: 4000
+      required:
+      - subject
+      - text
+      - topic
+    FavoriteState:
+      type: object
+      properties:
+        is_favorite:
+          type: boolean
+      required:
+      - is_favorite
+    Image:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        image:
+          type: string
+          format: uri
+          readOnly: true
+          title: Фотография
+        position:
+          type: integer
+          readOnly: true
+      required:
+      - id
+      - image
+      - position
+    KindEnum:
+      enum:
+      - sell
+      - buy
+      - service
+      - roommate
+      - exchange
+      - give
+      - lend
+      type: string
+      description: |-
+        * `sell` - Продам
+        * `buy` - Куплю
+        * `service` - Услуга
+        * `roommate` - Ищу соседа
+        * `exchange` - Обменяю
+        * `give` - Отдам бесплатно
+        * `lend` - Дам на время
+    Match:
+      type: object
+      properties:
+        ad:
+          allOf:
+          - $ref: '#/components/schemas/Ad'
+          readOnly: true
+        score:
+          type: integer
+          readOnly: true
+        reasons:
+          type: array
+          items:
+            type: string
+          readOnly: true
+      required:
+      - ad
+      - reasons
+      - score
+    Meeting:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        conversation:
+          type: integer
+          readOnly: true
+        ad:
+          type: integer
+          readOnly: true
+        proposed_by:
+          type: integer
+          readOnly: true
+        place:
+          type: integer
+          readOnly: true
+          title: Место встречи
+        place_name:
+          type: string
+          readOnly: true
+        starts_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Начало встречи
+        ends_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Конец интервала / срок брони
+        return_on:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+          title: Вернуть до
+        is_loan:
+          type: boolean
+          readOnly: true
+        study_request:
+          type: integer
+          readOnly: true
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/MeetingStatusEnum'
+          readOnly: true
+        effective_status:
+          type: string
+          readOnly: true
+        status_label:
+          type: string
+          readOnly: true
+        is_overdue:
+          type: boolean
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - ad
+      - conversation
+      - effective_status
+      - ends_at
+      - id
+      - is_loan
+      - is_overdue
+      - place
+      - place_name
+      - proposed_by
+      - return_on
+      - starts_at
+      - status
+      - status_label
+      - study_request
+      - updated_at
+    MeetingActionRequest:
+      type: object
+      properties:
+        action:
+          $ref: '#/components/schemas/ActionEnum'
+      required:
+      - action
+    MeetingInputRequest:
+      type: object
+      properties:
+        conversation:
+          type: integer
+          minimum: 1
+        place:
+          type: integer
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        return_on:
+          type: string
+          format: date
+          nullable: true
+        study_request:
+          type: integer
+          nullable: true
+      required:
+      - conversation
+      - ends_at
+      - place
+      - starts_at
+    MeetingStatusEnum:
+      enum:
+      - proposed
+      - confirmed
+      - transferred
+      - on_loan
+      - return_pending
+      - completed
+      - cancelled
+      - expired
+      type: string
+      description: |-
+        * `proposed` - Ждёт подтверждения
+        * `confirmed` - Встреча согласована · вещь в брони
+        * `transferred` - Автор отметил передачу
+        * `on_loan` - Вещь у получателя
+        * `return_pending` - Ожидает подтверждения возврата
+        * `completed` - Завершено
+        * `cancelled` - Отменено
+        * `expired` - Время встречи истекло
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        sender:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        text:
+          type: string
+          readOnly: true
+          title: Сообщение
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        read_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Прочитано
+      required:
+      - created_at
+      - id
+      - read_at
+      - sender
+      - text
+    MessageInputRequest:
+      type: object
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 4000
+      required:
+      - text
+    ModeEnum:
+      enum:
+      - any
+      - buy
+      - exchange
+      - give
+      - lend
+      type: string
+      description: |-
+        * `any` - Любой вариант
+        * `buy` - Купить
+        * `exchange` - Обменять
+        * `give` - Получить бесплатно
+        * `lend` - Взять на время
+    OfferRequestRequest:
+      type: object
+      properties:
+        ad:
+          type: integer
+          minimum: 1
+      required:
+      - ad
+    PaginatedAdList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ad'
+    PaginatedConversationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Conversation'
+    PaginatedImageList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Image'
+    PaginatedMatchList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Match'
+    PaginatedMeetingList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Meeting'
+    PaginatedMessageList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+    PaginatedRequestList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Request'
+    PaginatedReviewList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+    PaginatedSupportMessageList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupportMessage'
+    PaginatedTicketList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ticket'
+    PatchedAdRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: Название
+          maxLength: 200
+        description:
+          type: string
+          minLength: 1
+          title: Описание
+          maxLength: 10000
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+          title: Цена
+        price_type:
+          allOf:
+          - $ref: '#/components/schemas/PriceTypeEnum'
+          title: Формат цены
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/KindEnum'
+          title: Тип объявления
+        status:
+          allOf:
+          - $ref: '#/components/schemas/AdStatusEnum'
+          title: Статус
+        image:
+          type: string
+          format: binary
+          nullable: true
+          title: Обложка
+        category:
+          type: integer
+          title: Категория
+        location:
+          type: string
+          minLength: 1
+          title: Место встречи
+          maxLength: 150
+        is_study:
+          type: boolean
+          title: Для учебного обмена
+        subject:
+          type: string
+          title: Предмет
+          maxLength: 120
+        course:
+          type: integer
+          maximum: 6
+          minimum: 1
+          nullable: true
+          title: Курс
+        semester:
+          type: integer
+          maximum: 12
+          minimum: 1
+          nullable: true
+          title: Семестр
+        campus_place:
+          type: integer
+          nullable: true
+          title: Место в кампусе
+        available_from:
+          type: string
+          format: date-time
+          nullable: true
+          title: Можно забрать с
+        available_until:
+          type: string
+          format: date-time
+          nullable: true
+          title: Можно забрать до
+        exchange_for:
+          type: string
+          title: На что обменяю
+          maxLength: 200
+        condition:
+          allOf:
+          - $ref: '#/components/schemas/ConditionEnum'
+          title: Состояние
+    PatchedProfileRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+          writeOnly: true
+          maxLength: 150
+        last_name:
+          type: string
+          writeOnly: true
+          maxLength: 150
+        bio:
+          type: string
+          title: О себе
+          maxLength: 1000
+        faculty:
+          type: string
+          title: Институт / факультет
+          maxLength: 150
+        group:
+          type: string
+          title: Учебная группа
+          maxLength: 50
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          title: Статус
+        phone:
+          type: string
+          title: Телефон
+          pattern: ^\+?[0-9]{7,15}$
+          maxLength: 16
+        show_phone:
+          type: boolean
+          title: Разрешить звонки по моим объявлениям
+        reduce_motion:
+          type: boolean
+          title: Уменьшить анимации
+        telegram:
+          type: string
+          pattern: ^[A-Za-z0-9_]{5,32}$
+          maxLength: 32
+    PatchedRequestRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: Что нужно
+          maxLength: 160
+        subject:
+          type: string
+          minLength: 1
+          title: Предмет
+          maxLength: 120
+        course:
+          type: integer
+          maximum: 6
+          minimum: 1
+          nullable: true
+          title: Курс
+        semester:
+          type: integer
+          maximum: 12
+          minimum: 1
+          nullable: true
+          title: Семестр
+        mode:
+          allOf:
+          - $ref: '#/components/schemas/ModeEnum'
+          title: Как получить
+        description:
+          type: string
+          title: Подробности
+          maxLength: 2000
+        place:
+          type: integer
+          nullable: true
+          title: Удобное место
+        available_from:
+          type: string
+          format: date-time
+          nullable: true
+          title: Удобно встретиться с
+        available_until:
+          type: string
+          format: date-time
+          nullable: true
+          title: До
+        is_active:
+          type: boolean
+          title: Поиск открыт
+    PhotoUploadRequest:
+      type: object
+      properties:
+        images:
+          type: array
+          items:
+            type: string
+            format: binary
+          maxItems: 8
+          minItems: 1
+      required:
+      - images
+    Place:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Место
+          maxLength: 120
+        meeting_hint:
+          type: string
+          title: Ориентир для встречи
+          maxLength: 200
+      required:
+      - id
+      - name
+    PriceTypeEnum:
+      enum:
+      - fixed
+      - free
+      - negotiable
+      type: string
+      description: |-
+        * `fixed` - Фиксированная
+        * `free` - Бесплатно
+        * `negotiable` - Договорная
+    Profile:
+      type: object
+      properties:
+        user:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        bio:
+          type: string
+          title: О себе
+          maxLength: 1000
+        faculty:
+          type: string
+          title: Институт / факультет
+          maxLength: 150
+        group:
+          type: string
+          title: Учебная группа
+          maxLength: 50
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          title: Статус
+        phone:
+          type: string
+          title: Телефон
+          pattern: ^\+?[0-9]{7,15}$
+          maxLength: 16
+        show_phone:
+          type: boolean
+          title: Разрешить звонки по моим объявлениям
+        reduce_motion:
+          type: boolean
+          title: Уменьшить анимации
+        telegram:
+          type: string
+          pattern: ^[A-Za-z0-9_]{5,32}$
+          maxLength: 32
+      required:
+      - user
+    PublicProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          readOnly: true
+          title: Имя пользователя
+          description: Обязательное поле. Не более 150 символов. Только буквы, цифры
+            и символы @/./+/-/_.
+        first_name:
+          type: string
+          readOnly: true
+          title: Имя
+        last_name:
+          type: string
+          readOnly: true
+          title: Фамилия
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата регистрации
+        faculty:
+          type: string
+          readOnly: true
+          default: ''
+        bio:
+          type: string
+          readOnly: true
+          default: ''
+        rating:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+      required:
+      - bio
+      - date_joined
+      - faculty
+      - first_name
+      - id
+      - last_name
+      - rating
+      - username
+    RatingEnum:
+      enum:
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      type: integer
+      description: |-
+        * `1` - 1
+        * `2` - 2
+        * `3` - 3
+        * `4` - 4
+        * `5` - 5
+    RegisterRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 150
+        first_name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password1:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password2:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - first_name
+      - password1
+      - password2
+      - username
+    ReplyRequest:
+      type: object
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 4000
+      required:
+      - text
+    Request:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        author:
+          type: integer
+          readOnly: true
+        author_name:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          title: Что нужно
+          maxLength: 160
+        subject:
+          type: string
+          title: Предмет
+          maxLength: 120
+        course:
+          type: integer
+          maximum: 6
+          minimum: 1
+          nullable: true
+          title: Курс
+        semester:
+          type: integer
+          maximum: 12
+          minimum: 1
+          nullable: true
+          title: Семестр
+        mode:
+          allOf:
+          - $ref: '#/components/schemas/ModeEnum'
+          title: Как получить
+        description:
+          type: string
+          title: Подробности
+          maxLength: 2000
+        place:
+          type: integer
+          nullable: true
+          title: Удобное место
+        available_from:
+          type: string
+          format: date-time
+          nullable: true
+          title: Удобно встретиться с
+        available_until:
+          type: string
+          format: date-time
+          nullable: true
+          title: До
+        is_active:
+          type: boolean
+          title: Поиск открыт
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - author
+      - author_name
+      - created_at
+      - id
+      - subject
+      - title
+    RequestRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          title: Что нужно
+          maxLength: 160
+        subject:
+          type: string
+          minLength: 1
+          title: Предмет
+          maxLength: 120
+        course:
+          type: integer
+          maximum: 6
+          minimum: 1
+          nullable: true
+          title: Курс
+        semester:
+          type: integer
+          maximum: 12
+          minimum: 1
+          nullable: true
+          title: Семестр
+        mode:
+          allOf:
+          - $ref: '#/components/schemas/ModeEnum'
+          title: Как получить
+        description:
+          type: string
+          title: Подробности
+          maxLength: 2000
+        place:
+          type: integer
+          nullable: true
+          title: Удобное место
+        available_from:
+          type: string
+          format: date-time
+          nullable: true
+          title: Удобно встретиться с
+        available_until:
+          type: string
+          format: date-time
+          nullable: true
+          title: До
+        is_active:
+          type: boolean
+          title: Поиск открыт
+      required:
+      - subject
+      - title
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        from_user:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+        to_user:
+          type: integer
+          title: Кому
+        response:
+          type: integer
+          readOnly: true
+          nullable: true
+        rating:
+          allOf:
+          - $ref: '#/components/schemas/RatingEnum'
+          title: Оценка
+          minimum: 1
+          maximum: 5
+        text:
+          type: string
+          title: Отзыв
+          maxLength: 2000
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - from_user
+      - id
+      - rating
+      - response
+      - to_user
+    ReviewRequest:
+      type: object
+      properties:
+        to_user:
+          type: integer
+          title: Кому
+        rating:
+          allOf:
+          - $ref: '#/components/schemas/RatingEnum'
+          title: Оценка
+          minimum: 1
+          maximum: 5
+        text:
+          type: string
+          title: Отзыв
+          maxLength: 2000
+      required:
+      - rating
+      - to_user
+    RoleEnum:
+      enum:
+      - student
+      - staff
+      type: string
+      description: |-
+        * `student` - Студент
+        * `staff` - Сотрудник
+    SupportMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        text:
+          type: string
+          readOnly: true
+          title: Сообщение
+        from_staff:
+          type: boolean
+          readOnly: true
+          title: Ответ поддержки
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Отправлено
+        read_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+          title: Прочитано пользователем
+      required:
+      - created_at
+      - from_staff
+      - id
+      - read_at
+      - text
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        subject:
+          type: string
+          readOnly: true
+          title: Тема обращения
+        topic:
+          allOf:
+          - $ref: '#/components/schemas/TopicEnum'
+          readOnly: true
+          title: Раздел
+        status:
+          allOf:
+          - $ref: '#/components/schemas/TicketStatusEnum'
+          readOnly: true
+          title: Статус
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Создано
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Обновлено
+        unread_answers:
+          type: integer
+          readOnly: true
+          default: 0
+      required:
+      - created_at
+      - id
+      - status
+      - subject
+      - topic
+      - unread_answers
+      - updated_at
+    TicketStatusEnum:
+      enum:
+      - open
+      - answered
+      - closed
+      type: string
+      description: |-
+        * `open` - Ожидает поддержки
+        * `answered` - Поддержка ответила
+        * `closed` - Закрыто
+    TokenBlacklistRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - refresh
+    TokenObtainPair:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - refresh
+    TokenObtainPairRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - password
+      - username
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+          minLength: 1
+      required:
+      - refresh
+    TopicEnum:
+      enum:
+      - account
+      - listing
+      - messages
+      - safety
+      - idea
+      - other
+      type: string
+      description: |-
+        * `account` - Аккаунт и вход
+        * `listing` - Объявления
+        * `messages` - Сообщения
+        * `safety` - Безопасность
+        * `idea` - Идея для сайта
+        * `other` - Другой вопрос
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          readOnly: true
+          title: Имя пользователя
+          description: Обязательное поле. Не более 150 символов. Только буквы, цифры
+            и символы @/./+/-/_.
+        first_name:
+          type: string
+          readOnly: true
+          title: Имя
+        last_name:
+          type: string
+          readOnly: true
+          title: Фамилия
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+          title: Дата регистрации
+      required:
+      - date_joined
+      - first_name
+      - id
+      - last_name
+      - username
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

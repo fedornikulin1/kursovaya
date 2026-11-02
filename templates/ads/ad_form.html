@@ -1,105 +1,51 @@
 {% extends "base.html" %}
-{% load static %}
-
 {% block title %}
-    {% if form.instance.pk %}Редактирование{% else %}Новое объявление{% endif %} — UniBoard
-{% endblock %}
-
+  {% if ad.pk %}Редактирование{% else %}Новое объявление{% endif %} — ДоскаСВФУ{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-primary text-white py-3">
-                <h4 class="mb-0">
-                    {% if form.instance.pk %}
-                    ✏️ Редактирование объявления
-                    {% else %}
-                    ➕ Создать новое объявление
-                    {% endif %}
-                </h4>
-            </div>
-            <div class="card-body p-4">
-                <form method="post" enctype="multipart/form-data" novalidate>
-                    {% csrf_token %}
-
-                    {% for field in form %}
-                    <div class="mb-3">
-                        <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
-                            {{ field.label }}
-                            {% if field.field.required %}
-                            <span class="text-danger">*</span>
-                            {% endif %}
-                        </label>
-
-                        {% if field.name == 'description' %}
-                        <textarea name="{{ field.name }}"
-                                  class="form-control {% if field.errors %}is-invalid{% endif %}"
-                                  rows="5"
-                                  placeholder="Подробно опишите товар или услугу...">{{ field.value|default:'' }}</textarea>
-                        {% elif field.name == 'price' %}
-                        <div class="input-group">
-                            <input type="number"
-                                   name="{{ field.name }}"
-                                   class="form-control {% if field.errors %}is-invalid{% endif %}"
-                                   value="{{ field.value|default:'' }}"
-                                   step="0.01" min="0"
-                                   placeholder="Например, 1500">
-                            <span class="input-group-text">₽</span>
-                        </div>
-                        {% elif field.name == 'image' %}
-                        <input type="file"
-                               name="{{ field.name }}"
-                               class="form-control {% if field.errors %}is-invalid{% endif %}"
-                               accept="image/*">
-                        {% if form.instance.image %}
-                        <div class="mt-2">
-                            <small class="text-muted">Текущее фото:</small>
-                            <img src="{{ form.instance.image.url }}" class="img-thumbnail mt-1" style="max-height: 100px;">
-                        </div>
-                        {% endif %}
-                        {% elif field.name == 'category' %}
-                        <select name="{{ field.name }}" class="form-select {% if field.errors %}is-invalid{% endif %}">
-                            <option value="">Выберите категорию</option>
-                            {% for cat in field.field.queryset %}
-                            <option value="{{ cat.id }}"
-                                    {% if field.value|stringformat:"s" == cat.id|stringformat:"s" %}selected{% endif %}>
-                                {{ cat.name }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                        {% else %}
-                        <input type="{{ field.field.widget.input_type }}"
-                               name="{{ field.name }}"
-                               class="form-control {% if field.errors %}is-invalid{% endif %}"
-                               value="{{ field.value|default:'' }}"
-                               placeholder="{{ field.label }}">
-                        {% endif %}
-
-                        {% if field.errors %}
-                        <div class="invalid-feedback d-block">
-                            {% for error in field.errors %}
-                            {{ error }}
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-
-                        {% if field.help_text %}
-                        <small class="form-text text-muted">{{ field.help_text }}</small>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                        <a href="{% url 'ads:my_ads' %}" class="btn btn-outline-secondary me-md-2">
-                            ❌ Отмена
-                        </a>
-                        <button type="submit" class="btn btn-success px-4">
-                            {% if form.instance.pk %}💾 Сохранить{% else %}📢 Опубликовать{% endif %}
-                        </button>
-                    </div>
-                </form>
-            </div>
+  <div class="page-intro">
+    <span class="eyebrow subtle">ДАЙ ВЕЩАМ НОВУЮ ИСТОРИЮ</span>
+    <h1>{% if ad.pk %}Редактирование объявления{% else %}Новое объявление{% endif %}</h1>
+    <p>Расскажи о вещи, добавь фотографии и договорись о встрече.</p>
+  </div>
+  <div class="editor-layout">
+    <form method="post"
+          enctype="multipart/form-data"
+          class="surface form-surface">
+      {% csrf_token %}
+      <div class="form-errors upload-form-errors" data-ad-errors role="alert" tabindex="-1" hidden></div>
+      {% if form.non_field_errors %}<div class="form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+      {% for field in form.main_fields %}
+        {% if field.name != "image" and field.name != "photos" and field.name != "delete_photos" %}
+          <div class="form-field" {% if field.name == "price" %}data-price-field{% endif %}>
+            <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span class="required"> *</span>{% endif %}</label>
+            {{ field }}{{ field.errors }}
+            {% if field.help_text %}<p class="field-help">{{ field.help_text }}</p>{% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
+      <fieldset class="study-editor">
+        <legend>Передай следующему курсу</legend>
+        <label class="study-switch" for="{{ form.is_study.id_for_label }}">{{ form.is_study }} <span><strong>Добавить в учебный обмен</strong><small>Подберём вашу вещь студентам по предмету и курсу.</small></span></label>
+        <div class="study-field-grid" data-study-settings>
+          {% for field in form.study_fields %}
+            <div class="form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>
+          {% endfor %}
         </div>
-    </div>
-</div>
+        <p class="field-help">Указывайте предмет так, как он называется в учебном плане. Обмен, бесплатная и временная передача не требуют цены.</p>
+      </fieldset>
+      {% include "components/photo_editor.html" %}
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Сохранить объявление</button>
+        <a class="btn btn-quiet" href="{% url 'ads:my_ads' %}">Отмена</a>
+      </div>
+    </form>
+    <aside>
+      <div class="community-note">
+        <h3>Хорошее объявление заметнее</h3>
+        <p>Снимай при дневном свете. Покажи детали и честно расскажи о состоянии вещи.</p>
+        <p>Контакты для звонка можно настроить в профиле. По умолчанию номер скрыт.</p>
+        <a href="{% url 'ads:edit_profile' %}">Настроить контакты →</a>
+      </div>
+    </aside>
+  </div>
 {% endblock %}

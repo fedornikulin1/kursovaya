@@ -1,0 +1,13 @@
+{
+  "name": "doska-svfu",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./assets/input.css -o ./ads/static/ads/css/tailwind.css --minify",
+    "watch:css": "tailwindcss -i ./assets/input.css -o ./ads/static/ads/css/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.0",
+    "prettier": "^3.9.10",
+    "tailwindcss": "^4.3.0"
+  }
+}

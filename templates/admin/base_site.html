@@ -1,0 +1,15 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% block title %}{{ title }} · ДоскаСВФУ{% endblock %}
+{% block extrahead %}{{ block.super }}<meta charset="utf-8">{% endblock %}
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'ads/css/admin-campus.css' %}?v=3">
+  <link rel="stylesheet" href="{% static 'ads/css/admin-workspace.css' %}?v=2">
+  <script defer src="{% static 'ads/js/admin-workspace.js' %}?v=1"></script>
+{% endblock %}
+{% block branding %}
+  <div id="site-name"><a href="{% url 'admin:index' %}"><span class="admin-brand-mark">д.</span>доска <small>УПРАВЛЕНИЕ</small></a></div>
+{% endblock %}
+{% block nav-global %}<a class="admin-help-link" href="{% url 'support:help' %}">Центр помощи ↗</a>{% endblock %}
+{% block nav-sidebar %}{% include "admin/campus_sidebar.html" %}{% endblock %}

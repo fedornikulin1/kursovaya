@@ -1,0 +1,65 @@
+<article class="listing-card">
+  <div class="listing-visual">
+    <a href="{{ ad.get_absolute_url }}" tabindex="-1" aria-hidden="true">
+      {% if ad.cover %}
+        <img src="{{ ad.cover.url }}"
+             alt=""
+             loading="eager"
+             decoding="async"
+             width="600"
+             height="450">
+      {% else %}
+        <div class="photo-placeholder">
+          {% include "components/icon.html" with name=ad.category.icon %}
+          <span>{{ ad.category.name }}</span>
+        </div>
+      {% endif %}
+    </a>
+    <span class="listing-kind">{{ ad.get_kind_display }}</span>
+    {% if user.is_authenticated %}
+      <form action="{% url 'ads:toggle_favorite' ad.pk %}"
+            method="post"
+            class="favorite-form"
+            data-favorite>
+        {% csrf_token %}
+        <button class="favorite-button {% if ad.is_favorite %}is-active{% endif %}"
+                type="submit"
+                aria-label="Избранное: {{ ad.title }}"
+                aria-pressed="{% if ad.is_favorite %}true{% else %}false{% endif %}">
+          {% include "components/icon.html" with name="heart" %}
+        </button>
+      </form>
+    {% else %}
+      <a href="{% url 'login' %}?next={{ request.path|urlencode }}"
+         class="favorite-button"
+         aria-label="Войти и добавить в избранное">{% include "components/icon.html" with name="heart" %}</a>
+    {% endif %}
+  </div>
+  <div class="listing-body">
+    <div class="listing-topline">
+      <span class="listing-category">{{ ad.category.name }}</span>
+      {% if ad.status != "active" %}
+        <span class="status">{{ ad.get_status_display }}</span>
+      {% endif %}
+    </div>
+    <h3>
+      <a href="{{ ad.get_absolute_url }}">{{ ad.title }}</a>
+    </h3>
+    <p class="listing-price">{{ ad.price_label }}</p>
+    <p class="listing-location">
+      {% include "components/icon.html" with name="pin" %}
+      {{ ad.location }}
+    </p>
+    <div class="listing-meta">
+      <span>{{ ad.author.first_name|default:ad.author.username }}</span>
+      <time datetime="{{ ad.created_at|date:'c' }}">
+      {{ ad.created_at|date:'d M' }}</time>
+    </div>
+    {% if own %}
+      <div class="listing-controls">
+        <a href="{% url 'ads:ad_update' ad.pk %}">Изменить</a>
+        <a href="{% url 'ads:ad_delete' ad.pk %}">Удалить</a>
+      </div>
+    {% endif %}
+  </div>
+</article>

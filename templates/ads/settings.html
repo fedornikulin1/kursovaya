@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Настройки — ДоскаСВФУ{% endblock %}
+{% block content %}
+  <div class="page-intro"><span class="eyebrow subtle">ПОД ВАШИМ КОНТРОЛЕМ</span><h1>Настройки</h1><p>Контакты, безопасность и комфорт при работе с сайтом.</p></div>
+  <div class="settings-layout">
+    <form method="post" class="surface form-surface">{% csrf_token %}<h2>Контакты и отображение</h2><p class="settings-description">Телефон виден вошедшим пользователям, только если разрешены звонки. Уменьшение анимаций применяется на всех ваших устройствах после входа.</p>{% include "components/fields.html" %}<button class="btn btn-primary" type="submit">Сохранить настройки</button></form>
+    <aside class="settings-cards"><section class="surface"><span class="eyebrow subtle">БЕЗОПАСНОСТЬ</span><h2>Пароль аккаунта</h2><p>Для смены понадобится действующий пароль.</p><a href="{% url 'password_change' %}" class="btn btn-outline">Изменить пароль</a></section><section class="surface"><h2>Ваш профиль</h2><p>Имя, институт, группа и информация о себе.</p><a href="{% url 'ads:edit_profile' %}">Редактировать профиль →</a></section></aside>
+  </div>
+{% endblock %}

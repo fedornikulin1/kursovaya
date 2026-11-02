@@ -1,0 +1,19 @@
+{% extends "admin/index.html" %}
+{% block nav-sidebar %}{% include "admin/campus_sidebar.html" %}{% endblock %}
+{% block content %}
+  <div class="workspace-heading"><div><span>РАБОЧЕЕ ПРОСТРАНСТВО</span><h1>Обзор площадки</h1><p>Добро пожаловать, {{ user.first_name|default:user.username }}. Здесь всё, что требует внимания.</p></div><a href="{% url 'ads:ad_list' %}">Посмотреть сайт ↗</a></div>
+  <div class="admin-stats">
+    {% for card in dashboard_cards %}<a href="{{ card.url }}" class="admin-stat {{ card.tone }}"><span>{{ card.label }}</span><strong>{{ card.count }}</strong><i>Перейти в раздел ↗</i></a>{% endfor %}
+  </div>
+  {% if support_queue %}
+    <section class="admin-support-queue"><header><div><span class="workspace-eyebrow">В ПЕРВУЮ ОЧЕРЕДЬ</span><h2>Ждут вашего ответа</h2></div><a href="{% url 'admin:support_supportticket_changelist' %}?status__exact=open">Все обращения →</a></header>
+      {% for ticket in support_queue %}<a href="{% url 'admin:support_supportticket_change' ticket.pk %}"><span class="admin-ticket-number">#{{ ticket.pk }}</span><span><strong>{{ ticket.subject }}</strong><small>{{ ticket.user.get_full_name|default:ticket.user.username }} · {{ ticket.get_topic_display }}</small></span><time>{{ ticket.updated_at|date:"d M, H:i" }}</time><b>→</b></a>{% endfor %}
+    </section>
+  {% endif %}
+  <h2 class="workspace-section-title">Быстрый переход</h2>
+  <div id="content-main" class="workspace-modules">
+    {% for app in app_list %}{% if app.app_label != "axes" and app.app_label != "token_blacklist" %}
+      <section class="workspace-module"><h2>{{ app.name }}</h2>{% for model in app.models %}<div><a href="{{ model.admin_url }}">{{ model.name }} <span>↗</span></a>{% if model.add_url %}<a class="workspace-add" href="{{ model.add_url }}" aria-label="Добавить: {{ model.name }}">+</a>{% endif %}</div>{% endfor %}</section>
+    {% endif %}{% endfor %}
+  </div>
+{% endblock %}

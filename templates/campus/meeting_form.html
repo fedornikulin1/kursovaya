@@ -1,0 +1,2 @@
+{% extends "base.html" %}
+{% block content %}<div class="page-intro"><h1>Уточните встречу</h1><p>Предложение пока не отправлено. Исправьте указанные поля.</p><a href="{% url 'ads:conversation' meeting_thread.pk %}">← Вернуться в разговор</a></div><div class="surface form-surface">{% include "campus/meeting_panel.html" %}</div>{% endblock %}

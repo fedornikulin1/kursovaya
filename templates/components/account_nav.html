@@ -1,0 +1,10 @@
+<nav class="account-tabs" aria-label="Личный кабинет">
+  <a href="{% url 'ads:my_ads' %}"
+     {% if request.resolver_match.url_name == 'my_ads' %}aria-current="page"{% endif %}>Мои объявления</a>
+  <a href="{% url 'ads:favorite_list' %}"
+     {% if request.resolver_match.url_name == 'favorite_list' %}aria-current="page"{% endif %}>Избранное</a>
+  <a href="{% url 'ads:inbox' %}"
+     {% if request.resolver_match.url_name == 'inbox' %}aria-current="page"{% endif %}>Сообщения</a>
+  <a href="{% url 'ads:edit_profile' %}"
+     {% if request.resolver_match.url_name == 'edit_profile' %}aria-current="page"{% endif %}>Настройки профиля</a>
+</nav>

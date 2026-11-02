@@ -1,43 +1,36 @@
 {% extends "base.html" %}
-
-{% block title %}Вход — UniBoard{% endblock %}
-
+{% block title %}Вход — ДоскаСВФУ{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6 col-lg-5">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-primary text-white text-center py-3">
-                <h4 class="mb-0">🔐 Вход в аккаунт</h4>
-            </div>
-            <div class="card-body p-4">
-                <form method="post" novalidate>
-                    {% csrf_token %}
-
-                    {% if form.errors %}
-                    <div class="alert alert-danger">
-                        Неверное имя пользователя или пароль.
-                    </div>
-                    {% endif %}
-
-                    <div class="mb-3">
-                        <label for="id_username" class="form-label">Имя пользователя</label>
-                        <input type="text" name="username" class="form-control" id="id_username" required autofocus>
-                    </div>
-                    <div class="mb-3">
-                        <label for="id_password" class="form-label">Пароль</label>
-                        <input type="password" name="password" class="form-control" id="id_password" required>
-                    </div>
-
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg">Войти</button>
-                    </div>
-                </form>
-                <hr class="my-4">
-                <div class="text-center">
-                    <p class="mb-0">Нет аккаунта? <a href="{% url 'ads:register' %}" class="fw-semibold">Зарегистрироваться</a></p>
-                </div>
-            </div>
-        </div>
+  <div class="auth-layout">
+    <div class="auth-story">
+      <span class="eyebrow subtle">СВОИ РЯДОМ</span>
+      <h1>
+        С возвращением
+        <br>
+        в кампус.
+      </h1>
+      <p>
+        Твои находки, объявления и разговоры —
+        <br>
+        в одном месте.
+      </p>
+      <div class="auth-story-symbol">{% include "components/icon.html" with name="chat" %}</div>
     </div>
-</div>
+    <section class="surface auth-panel">
+      <h2>Войти в аккаунт</h2>
+      <p class="muted">Рады видеть тебя снова.</p>
+      <form method="post">
+        {% csrf_token %}
+        {% include "components/fields.html" %}
+        {% if next %}
+          <input type="hidden" name="next" value="{{ next }}">
+        {% endif %}
+        <button class="btn btn-primary w-full"
+                type="submit">Войти {% include "components/icon.html" with name="arrow" %}</button>
+      </form>
+      <p class="auth-bottom">Ещё нет аккаунта? <a href="{% url 'ads:register' %}">Зарегистрироваться</a>
+      </p>
+      <a href="{% url 'password_reset' %}" class="reset-link">Забыли пароль?</a>
+    </section>
+  </div>
 {% endblock %}

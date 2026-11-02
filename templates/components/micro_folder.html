@@ -1,0 +1,19 @@
+<div class="micro-folder" data-folder-float {% if folder_photos %}data-folder-photos{% endif %}>
+  <div class="micro-folder-notes" id="{% if folder_photos %}folder-photos{% else %}folder-study{% endif %}" data-folder-notes>
+    {% if folder_photos %}
+      <span class="micro-folder-note" aria-hidden="true">{% include "components/icon.html" with name="image" %}<small>Обложка</small></span>
+      <span class="micro-folder-note" aria-hidden="true">{% include "components/icon.html" with name="image" %}<small>Ракурсы</small></span>
+      <span class="micro-folder-note" aria-hidden="true">{% include "components/icon.html" with name="image" %}<small>До 8 фото</small></span>
+    {% else %}
+      <a class="micro-folder-note" href="{% url 'campus:exchange' %}">{% include "components/icon.html" with name="book" %}<small>Учебные вещи</small></a>
+      <a class="micro-folder-note" href="{% url 'campus:request_create' %}">{% include "components/icon.html" with name="search" %}<small>Мне нужно</small></a>
+      <a class="micro-folder-note" href="{% url 'campus:exchange' %}?tab=mine">{% include "components/icon.html" with name="chat" %}<small>Мои встречи</small></a>
+    {% endif %}
+  </div>
+  <span class="micro-folder-back" aria-hidden="true"></span>
+  <span class="micro-folder-paper" aria-hidden="true"></span>
+  <button type="button" class="micro-folder-front" data-folder-toggle aria-expanded="false" aria-controls="{% if folder_photos %}folder-photos{% else %}folder-study{% endif %}">
+    <span>{% if folder_photos %}Твои фотографии{% else %}На следующий курс{% endif %}</span>
+    <small data-folder-caption>{% if folder_photos %}Миниатюры подборки{% else %}Открой полезное ↗{% endif %}</small>
+  </button>
+</div>

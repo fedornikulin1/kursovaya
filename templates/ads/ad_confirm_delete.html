@@ -1,30 +1,24 @@
 {% extends "base.html" %}
-
-{% block title %}Удаление объявления — UniBoard{% endblock %}
-
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6 col-lg-5">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-danger text-white py-3">
-                <h4 class="mb-0">⚠️ Подтверждение удаления</h4>
-            </div>
-            <div class="card-body p-4 text-center">
-                <p class="lead">Вы уверены, что хотите удалить объявление <br><strong>«{{ ad.title }}»</strong>?</p>
-                <p class="text-muted">Это действие нельзя будет отменить.</p>
-                <form method="post" class="mt-4">
-                    {% csrf_token %}
-                    <div class="d-flex justify-content-center gap-2">
-                        <a href="{% url 'ads:my_ads' %}" class="btn btn-outline-secondary px-4">
-                            Отмена
-                        </a>
-                        <button type="submit" class="btn btn-danger px-4">
-                            Удалить
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+  <div class="surface auth-surface">
+    <span class="eyebrow subtle">МОИ ОБЪЯВЛЕНИЯ</span>
+    <h1>Удалить объявление?</h1>
+    <p>«{{ ad.title }}» будет удалено вместе с переписками по нему. Если вещь продана, можно изменить статус на «Закрыто».</p>
+    <form method="post" data-hold-form>
+      {% csrf_token %}
+      <div class="form-actions">
+        <button type="submit" class="btn btn-danger micro-hold" data-hold-button aria-describedby="hold-help">
+          <span data-hold-label>Удалить объявление</span><span data-hold-icon aria-hidden="true">→</span>
+          <span class="sr-only" role="progressbar" aria-label="Удержание для удаления" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-hold-progress></span>
+        </button>
+        <a href="{{ ad.get_absolute_url }}" class="btn btn-outline">Вернуться</a>
+      </div>
+      <p id="hold-help" class="micro-hold-help" aria-live="polite" data-hold-help>Нажатие удалит объявление.</p>
+      <details class="micro-hold-alternative" data-hold-alternative hidden>
+        <summary>Не получается удерживать кнопку?</summary>
+        <p>Можно подтвердить удаление обычным нажатием.</p>
+        <button type="submit" class="btn btn-outline" data-hold-fallback>Подтвердить удаление</button>
+      </details>
+    </form>
+  </div>
 {% endblock %}

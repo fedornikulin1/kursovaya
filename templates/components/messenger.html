@@ -1,0 +1,124 @@
+<section class="messenger {% if thread %}has-conversation{% endif %}"
+         data-messenger data-user="{{ user.pk }}" data-timezone="{{ display_timezone }}"
+         data-sidebar-url="{% url 'ads:inbox_sidebar' %}" aria-label="Личные сообщения">
+  <aside class="messenger-sidebar" aria-label="Разговоры">
+    <div class="messenger-sidebar-top">
+      <div class="messenger-title">
+        <h1>Сообщения</h1><span data-thread-count>{{ thread_count }}</span>
+      </div>
+      <label class="conversation-search">
+        {% include "components/icon.html" with name="search" %}
+        <input type="search" placeholder="Найти разговор" aria-label="Найти разговор" data-thread-search-input>
+      </label>
+      <div class="conversation-tabs" role="group" aria-label="Фильтр разговоров">
+        <button type="button" class="is-active" data-thread-filter="all" aria-pressed="true">Все</button>
+        <button type="button" data-thread-filter="unread" aria-pressed="false">
+          Непрочитанные <span data-unread-threads>{{ unread_thread_count }}</span>
+        </button>
+      </div>
+    </div>
+    <div class="conversation-list" data-thread-list>
+      {% include "components/thread_items.html" %}
+    </div>
+    <p class="thread-search-empty" data-search-empty hidden>Разговоров не найдено</p>
+    <div class="messenger-private">
+      {% include "components/icon.html" with name="lock" %} Только вы и собеседник
+    </div>
+  </aside>
+  <div class="messenger-main">
+    {% if thread %}
+      <header class="messenger-header">
+        <a href="{% url 'ads:inbox' %}" class="messenger-back" data-thread-link aria-label="К списку разговоров">
+          {% include "components/icon.html" with name="arrow" %}
+        </a>
+        <a href="{% url 'ads:user_profile' other_user.username %}" class="messenger-person">
+          <span class="avatar">{{ other_user.first_name|default:other_user.username|first|upper }}</span>
+          <span>
+            <strong>{{ other_user.get_full_name|default:other_user.username }}</strong>
+            <small>В сообществе с {{ other_user.date_joined|date:"M Y" }}</small>
+          </span>
+        </a>
+        {% if thread.is_accepted %}
+          <a class="conversation-review" href="{% url 'ads:add_review' other_user.username %}">
+            {% include "components/icon.html" with name="star" %}<span>Оставить отзыв</span>
+          </a>
+        {% elif user.pk == thread.ad.author_id %}
+          <form method="post" action="{% url 'ads:accept_response' thread.pk %}">
+            {% csrf_token %}
+            <button class="btn btn-outline accept-conversation" type="submit">Принять отклик</button>
+          </form>
+        {% endif %}
+      </header>
+      <a class="messenger-listing" href="{{ thread.ad.get_absolute_url }}">
+        {% if thread.ad.cover %}
+          <img src="{{ thread.ad.cover.url }}" alt="" width="42" height="42">
+        {% else %}
+          {% include "components/icon.html" with name="image" %}
+        {% endif %}
+        <span>
+          <small>Обсуждаете объявление{% if thread.ad.status != "active" %} · {{ thread.ad.get_status_display }}{% endif %}</small>
+          <strong>{{ thread.ad.title }}</strong>
+        </span>
+        <b>{{ thread.ad.price_label }}</b>
+        {% include "components/icon.html" with name="chevron" %}
+      </a>
+      {% include "campus/meeting_panel.html" %}
+      <div class="messenger-history" data-history data-chat="{{ thread.pk }}"
+           role="log" aria-label="История переписки" aria-live="polite">
+        <div class="conversation-start">Начало вашей истории · {{ thread.created_at|date:"d M Y" }}</div>
+        {% for message in chat_messages %}
+          {% ifchanged message.created_at|date:"d.m.Y" %}
+            <div class="message-date">{{ message.created_at|date:"d M Y" }}</div>
+          {% endifchanged %}
+          <div class="messenger-message {% if message.sender_id == user.pk %}is-own{% endif %}"
+               data-message-id="{{ message.pk }}" data-day="{{ message.created_at|date:'Y-m-d' }}">
+            <div class="messenger-bubble">
+              <p>{{ message.text }}</p>
+              <small>
+                <time datetime="{{ message.created_at|date:'c' }}">{{ message.created_at|date:"H:i" }}</time>
+                {% if message.sender_id == user.pk %}
+                  <span data-delivery>{% if message.read_at %}Прочитано{% else %}Отправлено{% endif %}</span>
+                {% endif %}
+              </small>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      <button class="new-messages" type="button" data-jump-bottom hidden>Новые сообщения ↓</button>
+      <div class="messenger-composer-wrap">
+        <p class="messenger-error" data-chat-error role="status">{{ form.text.errors|striptags }}{{ form.non_field_errors|striptags }}</p>
+        <form method="post" action="{% url 'ads:conversation' thread.pk %}" class="messenger-composer" data-composer>
+          {% csrf_token %}
+          <label class="sr-only" for="chat-text">Сообщение</label>
+          <textarea id="chat-text" name="text" rows="1" maxlength="4000" placeholder="Напишите сообщение…" required>{{ form.text.value|default_if_none:"" }}</textarea>
+          <button type="submit" aria-label="Отправить сообщение">
+            {% include "components/icon.html" with name="send" %}
+          </button>
+        </form>
+        <div class="composer-caption">
+          <span data-connection-status>Личная переписка по объявлению</span>
+          <span class="keyboard-hint">Enter — отправить · Shift + Enter — новая строка</span>
+        </div>
+      </div>
+    {% else %}
+      <div class="messenger-welcome">
+        <div class="welcome-illustration">
+          <span>{% include "components/icon.html" with name="chat" %}</span>
+          <i>{% include "components/icon.html" with name="check" %}</i>
+        </div>
+        <span class="eyebrow subtle">СВОИ НА СВЯЗИ</span>
+        <h2>Хорошие находки<br>начинаются с разговора</h2>
+        <p>
+          {% if threads %}
+            Выберите разговор слева, чтобы продолжить переписку и договориться о встрече.
+          {% else %}
+            Напишите автору понравившегося объявления. Все ваши разговоры будут здесь.
+          {% endif %}
+        </p>
+        <a href="{% url 'ads:ad_list' %}" class="btn btn-outline">
+          Найти что-нибудь своё {% include "components/icon.html" with name="arrow" %}
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</section>

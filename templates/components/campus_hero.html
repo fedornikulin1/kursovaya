@@ -1,0 +1,56 @@
+<section class="campus-showcase" data-hero-showcase aria-label="Всё нужное — у своих">
+  <div class="showcase-stage">
+    <div class="showcase-copy">
+      <span class="showcase-kicker"><i aria-hidden="true"></i> СВОИ РЯДОМ · ЯКУТСК</span>
+      <h1 class="showcase-title" aria-label="Всё нужное — у своих.">
+        <span aria-hidden="true"><span class="showcase-lead" data-glyph-lead>Всё нужное —</span><em class="showcase-accent" data-glyph-lottery>у своих.</em></span>
+      </h1>
+      <p>Учебник к новой паре. Уют в общагу.<br>И люди, с которыми легко договориться.</p>
+      <div class="showcase-actions">
+        <a class="btn btn-primary" href="#catalog-results">Найти своё {% include "components/icon.html" with name="arrow" %}</a>
+        <a href="{% url 'ads:ad_create' %}">Разместить объявление ↗</a>
+      </div>
+      <div class="showcase-foot">
+        <span><b aria-hidden="true">↗</b> Нашёл. Договорился. Забрал между парами.</span>
+        <button type="button" class="showcase-motion-toggle" data-showcase-toggle aria-pressed="false" hidden><span data-showcase-toggle-icon aria-hidden="true">Ⅱ</span><span data-showcase-toggle-label>Пауза анимаций</span></button>
+      </div>
+    </div>
+    <div class="showcase-gallery" data-hero-gallery role="region" aria-roledescription="карусель" aria-label="Находки от своих">
+      <div class="showcase-gallery-heading"><span><i class="showcase-live-dot" aria-hidden="true"></i> НАХОДКИ ОТ СВОИХ</span><small>Всё это — на доске</small></div>
+      <div class="showcase-deck" data-hero-deck>
+        {% for pick in hero_ads %}
+          <a class="showcase-card" data-hero-card data-position="{% if forloop.first %}front{% elif forloop.counter == 2 %}next{% elif forloop.last %}previous{% else %}away{% endif %}" href="{{ pick.get_absolute_url }}" aria-label="{{ pick.title }} · {{ pick.price_label }}" {% if not forloop.first %}tabindex="-1" aria-hidden="true" inert{% endif %}>
+            <img src="{{ pick.cover.url }}" alt="" width="450" height="440" draggable="false" {% if forloop.first %}fetchpriority="high"{% else %}decoding="async"{% endif %}>
+            <span class="showcase-card-category">{{ pick.category.name }}</span>
+            <span class="showcase-card-open" aria-hidden="true">↗</span>
+            <span class="showcase-card-caption"><small>{{ pick.location }}</small><strong>{{ pick.title }}</strong><b>{{ pick.price_label }}</b></span>
+          </a>
+        {% empty %}
+          <div class="showcase-gallery-empty">Первой находкой может стать ваша вещь.<a href="{% url 'ads:ad_create' %}">Разместить объявление →</a></div>
+        {% endfor %}
+      </div>
+      {% if hero_ads %}
+        <div class="showcase-gallery-controls">
+          <div class="showcase-gallery-dots" aria-label="Выбрать находку">
+            {% for pick in hero_ads %}<button type="button" data-hero-dot="{{ forloop.counter0 }}" aria-label="Показать находку {{ forloop.counter }}: {{ pick.title }}" {% if forloop.first %}aria-current="true"{% endif %}><i aria-hidden="true"></i></button>{% endfor %}
+          </div>
+          <div class="showcase-gallery-arrows"><button type="button" data-hero-prev aria-label="Предыдущая находка">←</button><span data-hero-count aria-live="off">1 / {{ hero_ads|length }}</span><button type="button" data-hero-next aria-label="Следующая находка">→</button></div>
+        </div>
+        <span class="showcase-gallery-progress" aria-hidden="true"><i data-hero-progress></i></span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="showcase-ribbon" aria-hidden="true">
+    <svg viewBox="1000 0 1600 150" preserveAspectRatio="xMidYMid slice" focusable="false" data-hero-ribbon>
+      <defs>
+        <linearGradient id="campus-ribbon-satin" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#ffe88a"/><stop offset=".35" stop-color="#ffde63"/><stop offset=".8" stop-color="#ffd24c"/><stop offset="1" stop-color="#f6bc37"/></linearGradient>
+        <path id="campus-ribbon-curve" d="M0 75 C200 35 600 35 800 75 S1400 115 1600 75 S2200 35 2400 75 S3000 115 3200 75 S3800 35 4000 75 S4600 115 4800 75 S5400 35 5600 75 S6200 115 6400 75">
+          <animate attributeName="d" begin="indefinite" dur="9s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.5;1" keySplines=".45 0 .55 1;.45 0 .55 1" values="M0 75 C200 35 600 35 800 75 S1400 115 1600 75 S2200 35 2400 75 S3000 115 3200 75 S3800 35 4000 75 S4600 115 4800 75 S5400 35 5600 75 S6200 115 6400 75;M0 75 C200 115 600 115 800 75 S1400 35 1600 75 S2200 115 2400 75 S3000 35 3200 75 S3800 115 4000 75 S4600 35 4800 75 S5400 115 5600 75 S6200 35 6400 75;M0 75 C200 35 600 35 800 75 S1400 115 1600 75 S2200 35 2400 75 S3000 115 3200 75 S3800 35 4000 75 S4600 115 4800 75 S5400 35 5600 75 S6200 115 6400 75"/>
+        </path>
+      </defs>
+      <use href="#campus-ribbon-curve" class="showcase-ribbon-base"/>
+      <use href="#campus-ribbon-curve" class="showcase-ribbon-edge"/>
+      <text><textPath href="#campus-ribbon-curve" startOffset="0" data-ribbon-text><tspan data-ribbon-phrase>{% include "components/hero_tape_words.html" %}</tspan><tspan>{% include "components/hero_tape_words.html" %}</tspan><tspan>{% include "components/hero_tape_words.html" %}</tspan><tspan>{% include "components/hero_tape_words.html" %}</tspan><animate attributeName="startOffset" begin="indefinite" from="0" to="-2200" dur="38s" repeatCount="indefinite" data-ribbon-scroll/></textPath></text>
+    </svg>
+  </div>
+</section>

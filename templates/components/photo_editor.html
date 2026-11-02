@@ -1,0 +1,44 @@
+<section class="photo-editor" data-photo-editor data-max="8">
+  <div class="photo-editor-heading micro-photo-heading">
+    <div><span class="eyebrow subtle">ПЕРВОЕ ВПЕЧАТЛЕНИЕ</span><h2>Фотографии</h2><span data-photo-count aria-live="polite"></span></div>
+    {% include "components/micro_folder.html" with folder_photos=True %}
+  </div>
+  <p class="photo-editor-hint">Одна обложка и дополнительные ракурсы. До 8 фото всего · JPEG, PNG, WebP · до 5 МБ.</p>
+  <div class="photo-upload-group" data-upload-group="cover">
+    <h3>Обложка <small>одно фото</small></h3>
+    <label class="photo-dropzone" data-dropzone>
+      <input class="photo-file-input" type="file" name="image" id="id_image" accept="image/jpeg,image/png,image/webp" data-upload-input>
+      {% include "components/icon.html" with name="image" %}<strong>Выбрать обложку</strong><span>или перетащить фотографию сюда</span>
+    </label>
+    <div class="photo-preview-grid" data-selected-previews></div>
+    {% if form.initial.image %}
+      <label class="saved-photo cover-saved" data-saved-cover>
+        <img src="{{ form.initial.image.url }}" alt="Текущая обложка" width="112" height="90">
+        <span>Текущая обложка</span><span class="photo-remove-label"><input type="checkbox" name="image-clear" id="image-clear_id" {% if form.is_bound and not form.image.value %}checked{% endif %}> Убрать обложку</span>
+      </label>
+    {% endif %}
+    {{ form.image.errors }}
+  </div>
+  <div class="photo-upload-group" data-upload-group="additional">
+    <h3>Другие ракурсы <small>можно добавлять по одному</small></h3>
+    <label class="photo-dropzone" data-dropzone>
+      <input class="photo-file-input" type="file" name="photos" id="id_photos" accept="image/jpeg,image/png,image/webp" multiple data-upload-input>
+      {% include "components/icon.html" with name="plus" %}<strong>Добавить фотографии</strong><span>выбирайте порциями или перетащите файлы</span>
+    </label>
+    <div class="photo-preview-grid" data-selected-previews></div>
+    {% if ad.pk %}
+      <div class="photo-preview-grid saved-photo-grid">
+        {% for photo in ad.images.all %}
+          <label class="saved-photo" data-saved-photo>
+            <img src="{{ photo.image.url }}" alt="Сохранённое фото {{ forloop.counter }}" width="112" height="90">
+            <span class="photo-remove-label"><input type="checkbox" name="delete_photos" value="{{ photo.pk }}" {% if photo.pk|stringformat:'s' in form.delete_photos.value %}checked{% endif %}> Убрать фото</span>
+          </label>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {{ form.photos.errors }}{{ form.delete_photos.errors }}
+  </div>
+  <p class="photo-upload-status" role="status" data-upload-status></p>
+  <p class="photo-editor-hint">Фото с отметкой «Убрать» удалятся после сохранения. Если форма сообщит об ошибке, исправьте её — выбранные фото останутся в подборке.</p>
+  <noscript><p class="photo-editor-hint">Без JavaScript после ошибки формы новые файлы нужно выбрать повторно.</p></noscript>
+</section>

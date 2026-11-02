@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Учебный обмен — ДоскаСВФУ{% endblock %}
+{% block body_class %}campus-page{% endblock %}
+{% block content %}
+  <section class="study-hero">
+    <div class="study-hero-copy"><span class="eyebrow">ОТ СТАРШИХ — МЛАДШИМ</span><h1>Ты уже сдал.<br>Кому-то ещё <em>предстоит.</em></h1><p>Передай учебник, обменяй конспекты или одолжи калькулятор. Нужные вещи встречаются между парами.</p><div class="study-actions"><a class="btn btn-primary" href="{% url 'ads:ad_create' %}?study=1">Передать вещь {% include "components/icon.html" with name="arrow" %}</a><a class="btn btn-outline" href="{% url 'campus:request_create' %}">Мне нужно</a></div><div class="study-hero-foot"><span>{{ offer_count }} предложений</span><span>{{ request_count }} открытых запросов</span><span>Своим в кампусе</span></div></div>
+    <div class="study-hero-art micro-study-art">
+      <div class="study-orbit" aria-hidden="true"></div>
+      {% include "components/micro_folder.html" %}
+      <span class="micro-folder-hint">Нажми на папку — внутри полезное</span>
+    </div>
+  </section>
+  <nav class="study-tabs" aria-label="Разделы учебного обмена"><a href="{% url 'campus:exchange' %}"
+   class="{% if tab == 'offers' %}active{% endif %}">Предложения <span>{{ offer_count }}</span></a><a href="?tab=requests"
+   class="{% if tab == 'requests' %}active{% endif %}">Кому что нужно <span>{{ request_count }}</span></a><a href="?tab=mine" class="{% if tab == 'mine' %}active{% endif %}">Мои запросы и встречи</a></nav>
+  {% if tab != "mine" %}
+    <form class="study-search" method="get"><input type="hidden" name="tab" value="{{ tab }}"><label><span class="sr-only">Предмет или название</span><input type="search"
+       name="q"
+       value="{{ request.GET.q }}"
+       placeholder="Предмет или нужная вещь"></label><label><span class="sr-only">Место в кампусе</span><select name="place"><option value="">Весь кампус</option>{% for place in places %}<option value="{{ place.pk }}"
+        {% if request.GET.place == place.pk|stringformat:'s' %}selected{% endif %}>{{ place.name }}</option>{% endfor %}</select></label>{% if tab == "offers" %}<label><span class="sr-only">Способ передачи</span><select name="mode"><option value="">Все способы</option><option value="sell" {% if request.GET.mode == 'sell' %}selected{% endif %}>Продажа</option><option value="exchange"
+        {% if request.GET.mode == 'exchange' %}selected{% endif %}>Обмен</option><option value="give" {% if request.GET.mode == 'give' %}selected{% endif %}>Бесплатно</option><option value="lend" {% if request.GET.mode == 'lend' %}selected{% endif %}>На время</option></select></label>{% endif %}<button class="btn btn-primary">Подобрать</button><a href="?tab={{ tab }}" class="study-reset">Сбросить</a></form>
+  {% endif %}
+  {% if tab == "offers" %}
+    <div class="study-section-heading"><div><h2>Для следующего семестра</h2><p>Вещи, которые уже помогли кому-то сдать.</p></div><a href="{% url 'campus:request_create' %}">Не нашлось? Оставь запрос →</a></div>
+    <div class="study-offer-grid">{% for ad in page_obj %}<div class="study-offer-wrap"><div class="study-offer-meta"><span>{{ ad.subject }}</span><span>{% if ad.course %}{{ ad.course }} курс{% endif %}{% if ad.campus_reserved %} · В брони{% endif %}</span></div>{% include "components/card.html" %}</div>{% empty %}<div class="study-empty"><h2>Здесь место для полезных вещей</h2><p>Попробуй другой предмет или оставь запрос — старшекурсники увидят, что тебе нужно.</p><a class="btn btn-primary" href="{% url 'campus:request_create' %}">Оставить запрос</a></div>{% endfor %}</div>
+  {% elif tab == "requests" %}
+    <div class="study-section-heading"><div><h2>Может, это есть у тебя?</h2><p>Помоги кому-то подготовиться к следующей паре.</p></div><a href="{% url 'campus:request_create' %}">+ Мой запрос</a></div>
+    <div class="study-need-grid">{% for need in page_obj %}{% include "campus/need_card.html" %}{% empty %}<div class="study-empty"><h2>Пока никто ничего не ищет</h2><p>Создай первый запрос по своему предмету.</p></div>{% endfor %}</div>
+  {% else %}
+    <div class="study-section-heading"><h2>Мои запросы</h2><a href="{% url 'campus:request_create' %}">+ Новый запрос</a></div><div class="study-need-grid">{% for need in mine %}{% include "campus/need_card.html" %}{% empty %}<div class="study-empty"><p>Оставь запрос, и мы подберём предложения с объяснениями совпадений.</p><a href="{% url 'campus:request_create' %}" class="btn btn-outline">Мне нужно</a></div>{% endfor %}</div>
+    <div class="study-section-heading"><div><h2>Встречи и вещи на время</h2><p>Сроки указаны по времени Якутска. Просроченная бронь освобождается автоматически.</p></div></div><div class="study-need-grid">{% for meeting in meetings %}<a href="{% url 'ads:conversation' meeting.conversation_id %}"
+   class="study-need-card"><span class="study-pill">{{ meeting.status_label }}</span><h3>{{ meeting.ad.title }}</h3><p>{{ meeting.place }} · {{ meeting.starts_at|date:"d.m H:i" }}</p>{% if meeting.return_on %}<p>Вернуть до {{ meeting.return_on|date:"d.m.Y" }}{% if meeting.is_overdue %} · Срок возврата прошёл{% endif %}</p>{% endif %}<strong>Открыть разговор →</strong></a>{% empty %}<p class="muted">Предложи встречу в разговоре по объявлению — она появится здесь.</p>{% endfor %}</div>
+  {% endif %}
+  {% if tab != "mine" %}
+    {% include "components/pagination.html" %}
+  {% endif %}
+  <section class="study-how">
+    <div>
+      <span>01</span>
+      <h3>Найди по предмету</h3>
+      <p>Ищи предложения или оставь запрос с курсом и семестром.</p>
+    </div>
+    <div>
+      <span>02</span>
+      <h3>Совпадения с причинами</h3>
+      <p>Предмет, курс, место и время помогают выбрать подходящее.</p>
+    </div>
+    <div>
+      <span>03</span>
+      <h3>Встретьтесь между парами</h3>
+      <p>Подтвердите встречу в чате. Для временной передачи согласуйте возврат.</p>
+    </div>
+  </section>
+{% endblock %}

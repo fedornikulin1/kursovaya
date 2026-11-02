@@ -1,0 +1,7 @@
+@import "tailwindcss";
+@source "../templates";
+@theme {
+  --color-campus: #2557e0;
+  --color-ink: #17233b;
+  --font-sans: "Segoe UI", system-ui, sans-serif;
+}

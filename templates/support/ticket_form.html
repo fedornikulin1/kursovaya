@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Задать вопрос — ДоскаСВФУ{% endblock %}
+{% block body_class %}help-page{% endblock %}
+{% block content %}
+  <nav class="breadcrumbs"><a href="{% url 'support:help' %}">Помощь</a><span>/ Новый вопрос</span></nav>
+  <div class="support-page-heading"><div><span class="eyebrow subtle">ДАВАЙТЕ РАЗБЕРЁМСЯ</span><h1>Чем помочь?</h1><p>Расскажите подробнее, чтобы мы могли предложить решение.</p></div></div>
+  <div class="support-editor-layout">
+    <form method="post" class="surface support-create-form">
+      {% csrf_token %}
+      {% include "components/fields.html" %}
+      <button type="submit" class="btn btn-primary">Отправить вопрос {% include "components/icon.html" with name="send" %}</button>
+    </form>
+    <aside class="support-writing-note">
+      <span class="help-card-icon">{% include "components/icon.html" with name="document" %}</span>
+      <h2>Как помочь нам<br>помочь вам</h2>
+      <p>Опишите, что вы делали и что пошло не так. Для вопроса об объявлении добавьте ссылку, для ошибки — название браузера.</p>
+      <p>Не отправляйте пароль, коды подтверждения или данные карты.</p>
+      <a href="{% url 'support:tickets' %}">Уже задавали вопрос? Мои обращения →</a>
+    </aside>
+  </div>
+{% endblock %}

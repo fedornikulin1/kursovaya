@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Мои обращения — ДоскаСВФУ{% endblock %}
+{% block body_class %}help-page{% endblock %}
+{% block content %}
+  <nav class="breadcrumbs"><a href="{% url 'support:help' %}">Помощь</a><span>/ Мои обращения</span></nav>
+  <div class="support-page-heading">
+    <div><span class="eyebrow subtle">МЫ НА СВЯЗИ</span><h1>Мои обращения</h1><p>Ваши вопросы и ответы поддержки в одном месте.</p></div>
+    <a class="btn btn-primary" href="{% url 'support:create' %}">{% include "components/icon.html" with name="plus" %} Новый вопрос</a>
+  </div>
+  <div class="support-ticket-list">
+    {% for ticket in tickets %}
+      <a class="support-ticket-row" href="{{ ticket.get_absolute_url }}">
+        <span class="ticket-row-icon">{% include "components/icon.html" with name="chat" %}</span>
+        <span class="ticket-row-copy"><small>№ {{ ticket.pk }} · {{ ticket.get_topic_display }}</small><strong>{{ ticket.subject }}</strong><span>Обновлено {{ ticket.updated_at|date:"d M, H:i" }}</span></span>
+        <span class="support-status {{ ticket.status }}">{{ ticket.get_status_display }}</span>
+        {% if ticket.unread_answers %}<b class="support-answer-count">{{ ticket.unread_answers }}</b>{% endif %}
+        {% include "components/icon.html" with name="chevron" %}
+      </a>
+    {% empty %}
+      <div class="support-empty-state"><span class="help-card-icon">{% include "components/icon.html" with name="chat" %}</span><h2>Начните с вопроса</h2><p>Если что-то не получилось или появилась идея — напишите нам.</p><a class="btn btn-primary" href="{% url 'support:create' %}">Задать вопрос</a></div>
+    {% endfor %}
+  </div>
+{% endblock %}

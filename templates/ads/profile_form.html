@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="page-intro">
+    <span class="eyebrow subtle">ЛИЧНЫЙ КАБИНЕТ</span>
+    <h1>Настройки профиля</h1>
+    <p>Расскажи о себе и выбери удобный способ связи.</p>
+  </div>
+
+  <div class="editor-layout">
+    <form method="post" class="surface form-surface">
+      {% csrf_token %}
+      {% include "components/fields.html" %}
+      <button class="btn btn-primary" type="submit">Сохранить изменения</button>
+    </form>
+    <aside class="community-note">
+      <h3>Контакты под твоим контролем</h3>
+      <p>Номер виден вошедшим пользователям только при включённом разрешении на звонки.</p>
+      <p>Кнопка «Позвонить» откроет обычный набор номера на телефоне. Звонок оплачивается по тарифу оператора.</p>
+      <p>Указанный статус студента или сотрудника является информацией пользователя и не означает проверку университетом.</p>
+    </aside>
+  </div>
+{% endblock %}

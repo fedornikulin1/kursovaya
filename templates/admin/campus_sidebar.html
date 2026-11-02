@@ -1,0 +1,17 @@
+{% if has_permission %}
+<aside class="campus-admin-nav">
+  <details open data-admin-sections>
+    <summary>Разделы управления <span>⌄</span></summary>
+    <a href="{% url 'admin:index' %}" class="admin-overview-link {% if request.path == '/admin/' %}current{% endif %}"><span>◫</span> Обзор площадки</a>
+    {% for app in available_apps %}
+      {% if app.app_label != "axes" and app.app_label != "token_blacklist" %}
+        <div class="admin-nav-section"><h2>{{ app.name }}</h2>
+          {% for model in app.models %}<a href="{{ model.admin_url|default:model.add_url }}" class="{% if model.admin_url and model.admin_url in request.path %}current{% endif %}"><span class="admin-nav-marker"></span>{{ model.name }}</a>{% endfor %}
+        </div>
+      {% endif %}
+    {% endfor %}
+    <details class="admin-advanced"><summary>Системные разделы</summary>{% for app in available_apps %}{% if app.app_label == "axes" or app.app_label == "token_blacklist" %}{% for model in app.models %}<a href="{{ model.admin_url }}">{{ model.name }}</a>{% endfor %}{% endif %}{% endfor %}</details>
+    <a class="admin-return-site" href="{% url 'ads:ad_list' %}">← Открыть Доску</a>
+  </details>
+</aside>
+{% endif %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Обращение № {{ ticket.pk }} — ДоскаСВФУ{% endblock %}
+{% block body_class %}help-page{% endblock %}
+{% block content %}
+  <nav class="breadcrumbs"><a href="{% url 'support:help' %}">Помощь</a><span>/</span><a href="{% url 'support:tickets' %}">Мои обращения</a><span>/ № {{ ticket.pk }}</span></nav>
+  <div class="support-detail-layout">
+    <section class="support-conversation">
+      <header class="support-conversation-header">
+        <span class="eyebrow subtle">ОБРАЩЕНИЕ № {{ ticket.pk }}</span><h1>{{ ticket.subject }}</h1>
+        <div><span>{{ ticket.get_topic_display }} · {{ ticket.created_at|date:"d M Y" }}</span><span class="support-status {{ ticket.status }}">{{ ticket.get_status_display }}</span></div>
+      </header>
+      <div class="support-history" role="log" aria-label="Переписка с поддержкой">
+        {% for message in ticket_messages %}
+          <article class="support-message {% if message.from_staff %}staff{% endif %}">
+            <header>
+              <span class="support-message-avatar">{% if message.from_staff %}д.{% else %}{{ user.first_name|default:user.username|first|upper }}{% endif %}</span>
+              <strong>{% if message.from_staff %}Поддержка Доски{% else %}Вы{% endif %}</strong><time>{{ message.created_at|date:"d M, H:i" }}</time>
+            </header>
+            <p>{{ message.text }}</p>
+          </article>
+        {% endfor %}
+      </div>
+      {% if ticket.status != "closed" %}
+        <form method="post" class="support-reply-form">
+          {% csrf_token %}
+          {% include "components/fields.html" %}
+          <div><span>Ответ появится в этом обращении.</span><button type="submit" class="btn btn-primary">Отправить {% include "components/icon.html" with name="send" %}</button></div>
+        </form>
+      {% else %}
+        <div class="support-closed-note">{% include "components/icon.html" with name="check" %} Обращение закрыто. Если вопрос остался, его можно открыть снова.</div>
+      {% endif %}
+    </section>
+    <aside class="help-side">
+      <div class="help-contact-card">
+        <span class="help-card-icon">{% include "components/icon.html" with name="help" %}</span>
+        <h2>{% if ticket.status == "closed" %}Вопрос остался?{% else %}Мы вас услышали{% endif %}</h2>
+        <p>{% if ticket.status == "answered" %}Поддержка ответила. Если решение помогло, закройте обращение. Если нет — дополните вопрос.{% elif ticket.status == "closed" %}История сохранена. Можно вернуться к этому вопросу, не создавая новое обращение.{% else %}Вопрос в очереди поддержки. Здесь можно уточнить детали. Обновите страницу, чтобы проверить ответ.{% endif %}</p>
+        <form method="post" action="{% url 'support:status' ticket.pk %}">
+          {% csrf_token %}
+          {% if ticket.status == "closed" %}
+            <input type="hidden" name="action" value="reopen"><button class="btn btn-primary w-full" type="submit">Открыть повторно</button>
+          {% else %}
+            <input type="hidden" name="action" value="close"><button class="btn btn-outline w-full" type="submit">Вопрос решён</button>
+          {% endif %}
+        </form>
+        <a class="help-my-tickets" href="{{ ticket.get_absolute_url }}">Обновить переписку ↻</a>
+      </div>
+      <a class="support-back-link" href="{% url 'support:tickets' %}">← Все мои обращения</a>
+    </aside>
+  </div>
+{% endblock %}
