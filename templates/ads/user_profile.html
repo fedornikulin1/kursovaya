@@ -2,47 +2,48 @@
 {% block title %}
   {{ profile_user.get_full_name|default:profile_user.username }} — ДоскаСВФУ{% endblock %}
 {% block content %}
-  <section class="surface profile-header">
-    <div class="avatar avatar-large">
-      {{ profile_user.first_name|default:profile_user.username|first|upper }}
+  <section class="surface profile-header" aria-labelledby="profile-name">
+    <div class="profile-cover" aria-hidden="true">
+      {% if profile.cover %}<img src="{{ profile.cover.url }}" alt="" decoding="async">{% endif %}
     </div>
-    <div>
-      <span class="eyebrow subtle">{{ profile.get_role_display }}</span>
-      <h1>{{ profile_user.get_full_name|default:profile_user.username }}</h1>
-      <p class="muted">
-        {% if profile.faculty %}
-        {{ profile.faculty }} · {% endif %}На сайте с {{ profile_user.date_joined|date:'M Y' }}</p>
-      <div class="seller-rating">
-        {% include "components/icon.html" with name="star" %}
-        {% if rating.count %}
-          <strong>{{ rating.average|floatformat:1 }}</strong>
-          <span>Отзывов: {{ rating.count }}</span>
-        {% else %}
-          <span>Пока нет отзывов</span>
-        {% endif %}
+    <div class="profile-heading-row">
+      <div class="avatar avatar-large profile-portrait">
+        {% include "components/profile_avatar.html" with portrait=profile person=profile_user only %}
       </div>
+      <div class="profile-heading-text">
+        <span class="eyebrow subtle">{{ profile.get_role_display }}</span>
+        <h1 id="profile-name">{{ profile_user.get_full_name|default:profile_user.username }}</h1>
+        <p class="muted">
+          {% if profile.faculty %}{{ profile.faculty }} · {% endif %}На сайте с {{ profile_user.date_joined|date:'M Y' }}
+        </p>
+        <div class="seller-rating">
+          {% include "components/icon.html" with name="star" %}
+          {% if rating.count %}
+            <strong>{{ rating.average|floatformat:1 }}</strong>
+            <span>Отзывов: {{ rating.count }}</span>
+          {% else %}
+            <span>Пока нет отзывов</span>
+          {% endif %}
+        </div>
+      </div>
+      {% if user.pk != profile_user.pk %}
+        <div class="profile-actions">
+          <a href="{% url 'ads:profile_message' profile_user.username %}" class="btn btn-primary">
+            {% include "components/icon.html" with name="chat" %} Написать сообщение
+          </a>
+          {% if user.is_authenticated %}
+            <a href="{% url 'ads:add_review' profile_user.username %}" class="btn btn-outline">Оставить отзыв</a>
+            <a href="{% url 'support:report_profile' profile_user.username %}" class="btn btn-quiet profile-report-link">Пожаловаться</a>
+          {% endif %}
+        </div>
+      {% endif %}
     </div>
-    {% if user.pk == profile_user.pk %}
-      <div class="profile-actions">
-        <a class="btn btn-outline" href="{% url 'ads:edit_profile' %}">Редактировать профиль</a>
-        <form action="{% url 'logout' %}" method="post">
-          {% csrf_token %}
-          <button class="btn btn-quiet" type="submit">Выйти</button>
-        </form>
-      </div>
-    {% elif user.is_authenticated %}
-      <a href="{% url 'ads:add_review' profile_user.username %}"
-         class="btn btn-outline">Оставить отзыв</a>
-    {% endif %}
   </section>
   {% if profile.bio %}
     <div class="surface profile-bio">
       <h2>О себе</h2>
       {{ profile.bio|linebreaks }}
     </div>
-  {% endif %}
-  {% if user.pk == profile_user.pk %}
-    {% include "components/account_nav.html" %}
   {% endif %}
   <section class="profile-listings">
     <div class="section-toolbar">

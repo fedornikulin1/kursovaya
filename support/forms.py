@@ -25,6 +25,33 @@ class TicketForm(forms.ModelForm):
         }
 
 
+class ProfileReportForm(forms.Form):
+    REASONS = (
+        ("", "Выберите причину"),
+        ("harassment", "Оскорбления или угрозы"),
+        ("fraud", "Подозрение на мошенничество"),
+        ("prohibited_goods", "Запрещённые товары"),
+        ("spam", "Спам"),
+        ("other", "Другая причина"),
+    )
+
+    reason = forms.ChoiceField(label="Причина жалобы", choices=REASONS)
+    text = forms.CharField(
+        label="Что произошло?",
+        max_length=3000,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 5,
+                "placeholder": "Опишите, что должна проверить поддержка. При необходимости добавьте ссылку.",
+            }
+        ),
+    )
+
+    @property
+    def reason_label(self):
+        return dict(self.REASONS)[self.cleaned_data["reason"]]
+
+
 class ReplyForm(forms.Form):
     text = forms.CharField(
         label="Ваше сообщение",

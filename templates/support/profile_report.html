@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Жалоба на профиль — ДоскаСВФУ{% endblock %}
+{% block body_class %}help-page{% endblock %}
+{% block content %}
+  <nav class="breadcrumbs" aria-label="Путь до страницы">
+    <a href="{% url 'ads:user_profile' target.username %}">Профиль</a><span>/ Жалоба</span>
+  </nav>
+  <div class="support-page-heading">
+    <div>
+      <h1>Пожаловаться на профиль</h1>
+      <p>{{ target.get_full_name|default:target.username }} · @{{ target.username }}</p>
+    </div>
+  </div>
+  <div class="support-editor-layout">
+    <form method="post" class="surface support-create-form">
+      {% csrf_token %}
+      {% include "components/fields.html" %}
+      <button type="submit" class="btn btn-primary">
+        Отправить жалобу {% include "components/icon.html" with name="send" %}
+      </button>
+    </form>
+    <aside class="support-writing-note">
+      <span class="help-card-icon">{% include "components/icon.html" with name="help" %}</span>
+      <h2>Что будет дальше</h2>
+      <p>Поддержка проверит жалобу и сможет ответить в разделе «Мои обращения». Владелец профиля не получит копию жалобы.</p>
+      <p>Не указывайте в описании пароли, коды подтверждения и данные карты.</p>
+    </aside>
+  </div>
+{% endblock %}

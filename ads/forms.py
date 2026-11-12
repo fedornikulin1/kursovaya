@@ -1,11 +1,13 @@
 """Validated forms used by the server-rendered website."""
 
 from django import forms
+from django.conf import settings
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
 from .models import Ad, AdImage, Category, Review, UserProfile
+from .services import save_profile
 from .validators import MAX_IMAGES, validate_image
 
 User = get_user_model()
@@ -38,9 +40,15 @@ class MultipleImageField(forms.FileField):
 class RegisterForm(UserCreationForm):
     email = forms.EmailField(label="Электронная почта")
     first_name = forms.CharField(label="Имя", max_length=150)
+    dormitory = forms.ModelChoiceField(label="Общежитие", queryset=None, required=False, empty_label="Не в общежитии")
 
     class Meta(UserCreationForm.Meta):
-        fields = ("username", "first_name", "email", "password1", "password2")
+        fields = ("username", "first_name", "email", "dormitory", "password1", "password2")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from campus.models import Dormitory
+        self.fields["dormitory"].queryset = Dormitory.objects.filter(is_active=True)
 
     def clean_email(self):
         email = self.cleaned_data["email"].lower()
@@ -50,9 +58,16 @@ class RegisterForm(UserCreationForm):
 
     @transaction.atomic
     def save(self, commit=True):
-        user = super().save(commit=commit)
+        user = super().save(commit=False)
+        user.is_active = not settings.EMAIL_VERIFICATION_REQUIRED
         if commit:
-            UserProfile.objects.get_or_create(user=user)
+            from .email_verification import send_confirmation
+            user.save()
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            profile.dormitory = self.cleaned_data.get("dormitory")
+            profile.save(update_fields=["dormitory"])
+            if settings.EMAIL_VERIFICATION_REQUIRED:
+                send_confirmation(user)
         return user
 
 
@@ -85,30 +100,16 @@ class AdForm(forms.ModelForm):
             "kind",
             "category",
             "description",
-            "is_study",
-            "subject",
-            "course",
-            "semester",
-            "campus_place",
-            "available_from",
-            "available_until",
-            "exchange_for",
+            "dormitory",
             "price_type",
             "price",
             "condition",
-            "location",
             "image",
             "contact_info",
             "status",
         ]
         widgets = {
             "description": forms.Textarea(attrs={"rows": 6}),
-            "available_from": forms.DateTimeInput(
-                format="%Y-%m-%dT%H:%M", attrs={"type": "datetime-local"}
-            ),
-            "available_until": forms.DateTimeInput(
-                format="%Y-%m-%dT%H:%M", attrs={"type": "datetime-local"}
-            ),
         }
 
     def __init__(self, *args, **kwargs):
@@ -124,20 +125,18 @@ class AdForm(forms.ModelForm):
                 Q(is_active=True) | Q(pk=self.instance.category_id)
             )
         self.fields["category"].queryset = categories
+        self.fields["category"].empty_label = "Выберите категорию"
         for name in ("kind", "price_type"):
             self.fields[name].widget.attrs["data-jelly-select"] = ""
         self.fields["price"].widget.attrs.update({"min": 0, "step": "0.01"})
         self.fields["image"].widget.attrs["accept"] = "image/jpeg,image/png,image/webp"
         self.fields["photos"].widget.attrs["accept"] = "image/jpeg,image/png,image/webp"
-        from campus.models import CampusPlace
-
-        self.fields["campus_place"].queryset = CampusPlace.objects.filter(is_active=True)
-        self.fields["is_study"].help_text = (
-            "Добавит объявление в учебный обмен и подбор по предмету."
+        from campus.models import Dormitory
+        from django.db.models import Q
+        self.fields["dormitory"].queryset = Dormitory.objects.filter(
+            Q(is_active=True) | Q(pk=self.instance.dormitory_id)
         )
-        self.fields["available_until"].help_text = (
-            "Необязательно. Укажите оба времени, если готовы встречаться в определённый интервал (время Якутска)."
-        )
+        self.fields["dormitory"].empty_label = "Не в общежитии"
 
     def clean(self):
         data = super().clean()
@@ -164,6 +163,12 @@ class SettingsForm(forms.ModelForm):
             self.add_error("phone", "Укажите номер, чтобы разрешить звонки.")
         return data
 
+    def save(self, commit=True):
+        profile = super().save(commit=False)
+        if commit:
+            return save_profile(profile, changes=self.cleaned_data, user_changes={})
+        return profile
+
 
 class MessageForm(forms.Form):
     text = forms.CharField(
@@ -189,6 +194,13 @@ class ReviewForm(forms.ModelForm):
         }
 
 
+class ProfileImageInput(forms.ClearableFileInput):
+    template_name = "ads/widgets/profile_image.html"
+
+    def __init__(self):
+        super().__init__(attrs={"accept": "image/jpeg,image/png,image/webp"})
+
+
 class ProfileForm(forms.ModelForm):
     first_name = forms.CharField(label="Имя", max_length=150, required=False)
     last_name = forms.CharField(label="Фамилия", max_length=150, required=False)
@@ -200,26 +212,44 @@ class ProfileForm(forms.ModelForm):
             "last_name",
             "faculty",
             "group",
+            "dormitory",
             "role",
             "bio",
             "phone",
             "show_phone",
             "telegram",
+            "avatar",
+            "cover",
         ]
-        widgets = {"bio": forms.Textarea(attrs={"rows": 4})}
+        widgets = {
+            "bio": forms.Textarea(attrs={"rows": 4}),
+            "avatar": ProfileImageInput(),
+            "cover": ProfileImageInput(),
+        }
+
+    @property
+    def details_fields(self):
+        return [self[name] for name in self.fields if name not in {"avatar", "cover"}]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        from campus.models import Dormitory
+        from django.db.models import Q
+
+        self.fields["dormitory"].queryset = Dormitory.objects.filter(
+            Q(is_active=True) | Q(pk=self.instance.dormitory_id)
+        )
+        self.fields["dormitory"].empty_label = "Не в общежитии"
         self.fields["first_name"].initial = self.instance.user.first_name
         self.fields["last_name"].initial = self.instance.user.last_name
 
-    @transaction.atomic
     def save(self, commit=True):
         profile = super().save(commit=False)
         if commit:
-            user = profile.user
-            user.first_name = self.cleaned_data["first_name"]
-            user.last_name = self.cleaned_data["last_name"]
-            user.save(update_fields=["first_name", "last_name"])
-            profile.save()
+            names = {"first_name", "last_name"}
+            profile = save_profile(
+                profile,
+                changes={name: self.cleaned_data[name] for name in self.changed_data if name not in names},
+                user_changes={name: self.cleaned_data[name] for name in self.changed_data if name in names},
+            )
         return profile

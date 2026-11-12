@@ -98,6 +98,9 @@ class ResponseAdmin(admin.ModelAdmin):
     fields = ["ad", "user", "is_accepted", "created_at", "updated_at"]
     readonly_fields = fields
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(ad__isnull=False)
+
     def has_add_permission(self, request):
         return False
 
@@ -118,6 +121,7 @@ class ProfileInline(admin.StackedInline):
     model = UserProfile
     can_delete = False
     extra = 0
+    readonly_fields = ["avatar", "cover"]
 
 
 User = get_user_model()

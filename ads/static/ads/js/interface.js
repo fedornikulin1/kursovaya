@@ -15,6 +15,42 @@
       }
     });
   }
+
+  const navigation = document.querySelector("[data-header-nav]");
+  if (navigation) {
+    const underline = navigation.querySelector(".header-nav-underline");
+    const current = navigation.querySelector("a[aria-current]");
+    let hovered = null;
+
+    const placeUnderline = () => {
+      const target = navigation.querySelector("a:focus-visible") || hovered || current;
+      const label = target?.querySelector(".header-nav-label");
+      const bounds = (label?.offsetWidth ? label : target)?.getBoundingClientRect();
+      navigation.classList.toggle("has-underline-target", Boolean(bounds?.width));
+      if (!bounds?.width) return;
+      const offset = bounds.left - navigation.getBoundingClientRect().left;
+      underline.style.setProperty("--underline-offset", `${offset}px`);
+      underline.style.setProperty("--underline-width", `${bounds.width}px`);
+    };
+
+    navigation.querySelectorAll("a").forEach((link) => {
+      link.addEventListener("pointerenter", (event) => {
+        if (event.pointerType === "touch") return;
+        hovered = link;
+        placeUnderline();
+      });
+    });
+    navigation.addEventListener("pointerleave", () => {
+      hovered = null;
+      placeUnderline();
+    });
+    navigation.addEventListener("focusin", placeUnderline);
+    navigation.addEventListener("focusout", () => queueMicrotask(placeUnderline));
+    new ResizeObserver(placeUnderline).observe(navigation);
+    navigation.classList.add("has-underline");
+    placeUnderline();
+  }
+
   const header = document.querySelector(".site-header");
   if (header) {
     // Leave the header in document flow; translating it never shifts page content.

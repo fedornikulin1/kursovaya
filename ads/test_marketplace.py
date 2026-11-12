@@ -6,6 +6,7 @@ from io import BytesIO
 from PIL import Image
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, transaction
 from django.test import Client, TestCase, override_settings
@@ -296,6 +297,7 @@ class MarketplaceTests(TestCase):
             403,
         )
 
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
     def test_registration_and_jwt_rotation_logout(self):
         data = {
             "username": "newstudent",
@@ -305,6 +307,8 @@ class MarketplaceTests(TestCase):
             "password2": "A-very-strong-password-582!",
         }
         self.assertEqual(self.api.post("/api/v1/auth/register/", data).status_code, 201)
+        self.assertTrue(User.objects.get(username=data["username"]).is_active)
+        self.assertEqual(len(mail.outbox), 0)
         tokens = self.api.post(
             "/api/v1/auth/token/", {"username": data["username"], "password": data["password1"]}
         )
@@ -351,6 +355,55 @@ class MarketplaceTests(TestCase):
         api = APIClient(enforce_csrf_checks=True)
         api.force_login(self.buyer)
         self.assertEqual(api.post(f"/api/v1/ads/{self.ad.pk}/favorite/").status_code, 403)
+
+    def test_profile_images_upload_render_replace_and_clear(self):
+        self.authenticate(self.buyer)
+        edit_url = reverse("ads:edit_profile")
+        profile_url = reverse("ads:user_profile", args=[self.buyer.username])
+        response = self.client.post(edit_url, {
+            "role": "student", "avatar": self.image_upload(), "cover": self.image_upload(),
+        })
+        self.assertRedirects(response, profile_url)
+        profile = profile_for(self.buyer)
+        old_avatar, cover = profile.avatar, profile.cover
+        self.assertTrue(old_avatar.name.endswith(".jpg"))
+        self.assertContains(self.client.get(profile_url), old_avatar.url, count=3)
+        self.assertContains(self.client.get(edit_url), 'name="avatar-clear"')
+        self.assertContains(Client().get(profile_url), cover.url)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.api.patch("/api/v1/me/", {"avatar": self.image_upload()}, format="multipart")
+        self.assertEqual(response.status_code, 200, response.data)
+        profile.refresh_from_db()
+        self.assertNotEqual(profile.avatar.name, old_avatar.name)
+        self.assertFalse(old_avatar.storage.exists(old_avatar.name))
+        self.assertEqual(profile.cover.name, cover.name)
+        self.assertTrue(self.api.get("/api/v1/users/buyer/").data["avatar"].endswith(profile.avatar.url))
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(edit_url, {"role": "student", "cover-clear": "on"})
+        self.assertRedirects(response, profile_url)
+        profile.refresh_from_db()
+        self.assertFalse(profile.cover)
+        self.assertTrue(profile.avatar)
+        self.assertFalse(cover.storage.exists(cover.name))
+
+    def test_invalid_profile_image_keeps_saved_photos(self):
+        self.authenticate(self.buyer)
+        edit_url = reverse("ads:edit_profile")
+        self.client.post(edit_url, {"role": "student", "avatar": self.image_upload()})
+        profile = profile_for(self.buyer)
+        avatar_name = profile.avatar.name
+        gif = BytesIO()
+        Image.new("RGB", (10, 10)).save(gif, "GIF")
+        response = self.client.post(edit_url, {
+            "role": "student", "avatar-clear": "on",
+            "cover": SimpleUploadedFile("cover.gif", gif.getvalue(), content_type="image/gif"),
+        })
+        self.assertFormError(response.context["form"], "cover", "Разрешены фотографии JPEG, PNG и WebP.")
+        profile.refresh_from_db()
+        self.assertEqual(profile.avatar.name, avatar_name)
+        self.assertFalse(profile.cover)
 
     def test_web_create_edit_and_delete(self):
         self.authenticate(self.buyer)
@@ -661,7 +714,6 @@ class MarketplaceTests(TestCase):
             "kind": "sell",
             "category": self.category.pk,
             "condition": "used",
-            "location": "Кампус",
             "status": "active",
             "image": self.image_upload(),
             "photos": [self.image_upload() for _ in range(3)],

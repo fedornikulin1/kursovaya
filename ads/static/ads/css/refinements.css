@@ -139,29 +139,50 @@
   overflow: visible;
   border-color: #e3e9f4;
   box-shadow: 0 6px 28px #24457604;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
 }
-.filter-panel summary {
-  padding: 18px 17px;
-  gap: 10px;
-  background: linear-gradient(120deg, #fff, #f7f9ff);
-  border-radius: 18px 18px 0 0;
+.filter-panel:is(:hover, :focus-within) {
+  border-color: #bccff8;
+  box-shadow: 0 8px 28px #2349a511;
+}
+.filter-panel > summary {
+  min-height: 67px;
+  padding: 14px 12px;
+  gap: 7px;
+  background: #f8faff;
+  border-radius: inherit;
+  border-bottom: 0;
   font-size: 13px;
+  cursor: pointer;
+  transition: background-color 180ms ease, color 180ms ease;
 }
-.filter-panel summary small {
-  display: block;
-  color: #97a3b7;
-  font-size: 9px;
-  font-weight: 400;
-  margin-top: 4px;
+.filter-panel > summary .filter-title { white-space: nowrap; }
+.filter-panel[open] > summary {
+  border-radius: 18px 18px 0 0;
+  border-bottom: 1px solid #e3e9f4;
+}
+.filter-panel > summary:is(:hover, :focus-visible) {
+  background: #edf3ff;
+  color: #204cbd;
+}
+.filter-panel > summary:focus-visible {
+  outline: 2px solid #5780e9;
+  outline-offset: -2px;
 }
 .filter-heading-icon {
   display: grid;
+  flex: none;
   place-items: center;
-  width: 33px;
-  height: 33px;
-  color: #4971cf;
+  width: 30px;
+  height: 30px;
+  color: #3560ca;
   background: #eaf0ff;
   border-radius: 10px;
+  transition: transform 180ms ease, background-color 180ms ease;
+}
+.filter-panel > summary:is(:hover, :focus-visible) .filter-heading-icon {
+  transform: translateY(-2px);
+  background: #dce8ff;
 }
 .filter-panel summary .filter-heading-icon .icon {
   width: 18px;
@@ -169,20 +190,40 @@
 }
 .filter-counter {
   display: inline-flex;
+  flex: none;
   margin-left: auto;
   justify-content: center;
   align-items: center;
-  min-width: 23px;
+  min-width: 22px;
   height: 23px;
   padding: 0 6px;
   background: #e9effc;
-  color: #718dc4;
+  color: #52658b;
   border-radius: 7px;
   font-size: 10px;
 }
+.filter-counter.is-active {
+  background: #dce8ff;
+  color: #1f4abb;
+}
+.filter-chevron {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: #526da3;
+  transform: rotate(90deg);
+  transition: transform 200ms ease;
+}
+.filter-panel summary .filter-chevron .icon { width: 14px; height: 14px; }
+.filter-panel[open] .filter-chevron { transform: rotate(270deg); }
 .filter-form {
   padding: 21px 17px 18px;
 }
+.filter-panel[open] > .filter-form { animation: filter-reveal 200ms ease-out; }
+@keyframes filter-reveal {
+  from { opacity: .5; transform: translateY(-4px); }
+}
+.reduce-motion .filter-panel > summary:is(:hover, :focus-visible) .filter-heading-icon { transform: none; }
 .filter-form .form-field > label,
 .price-range legend {
   font-size: 11px;
@@ -241,6 +282,14 @@
   border-color: #86a7ed;
   box-shadow: 0 0 0 3px #eaf0fd;
   background: #fff;
+}
+.filter-form .custom-select-trigger:hover {
+  background: #f3f7ff;
+  border-color: #b8ccf7;
+}
+.filter-form .custom-select-trigger:focus-visible,
+.filter-form .is-open .custom-select-trigger {
+  border-color: #86a7ed;
 }
 .select-chevron {
   width: 6px;
@@ -327,6 +376,10 @@
   padding: 11px 9px !important;
   font-size: 11px !important;
 }
+.filter-form .price-range input:is(:hover, :focus) {
+  border-color: #a9c0ef !important;
+  background: #fff !important;
+}
 .price-presets {
   display: flex;
   gap: 5px;
@@ -362,6 +415,12 @@
   border: 1px solid #ecf0f6;
   border-radius: 9px;
   font-size: 11px;
+  cursor: pointer;
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+.filter-checkbox:is(:hover, :focus-within, :has(input:checked)) {
+  background: #f0f5ff;
+  border-color: #c9d8f5;
 }
 .filter-checkbox input {
   border-radius: 4px;
@@ -486,17 +545,12 @@
   .filter-panel summary {
     padding: 15px 12px;
   }
-  .filter-panel summary small {
-    font-size: 8px;
-  }
+  .filter-heading-icon { display: none; }
   .filter-form {
     padding: 17px 12px;
   }
 }
 @media (max-width: 900px) {
-  .filter-heading-icon {
-    display: none;
-  }
   .filter-panel summary {
     font-size: 12px;
   }
@@ -536,24 +590,15 @@
     width: 30px;
     height: 30px;
   }
-  .filter-panel summary {
-    padding: 14px;
-    border-radius: 12px;
-  }
-  .filter-panel[open] summary {
+  .filter-panel > summary { min-height: 56px; padding: 11px 14px; }
+  .filter-panel[open] > summary {
     border-radius: 12px 12px 0 0;
   }
   .filter-heading-icon {
     display: grid;
   }
-  .filter-panel summary small {
-    font-size: 9px;
-  }
   .filter-counter {
     margin-left: auto;
-  }
-  .filter-panel summary:after {
-    margin-left: 3px;
   }
   .filter-form {
     padding: 17px 14px;
@@ -619,6 +664,7 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .filter-panel > summary:is(:hover, :focus-visible) .filter-heading-icon { transform: none; }
   .page-loader {
     display: none !important;
   }

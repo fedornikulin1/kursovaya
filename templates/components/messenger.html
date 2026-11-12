@@ -42,27 +42,29 @@
           <a class="conversation-review" href="{% url 'ads:add_review' other_user.username %}">
             {% include "components/icon.html" with name="star" %}<span>Оставить отзыв</span>
           </a>
-        {% elif user.pk == thread.ad.author_id %}
+        {% elif thread.ad_id and user.pk == thread.ad.author_id %}
           <form method="post" action="{% url 'ads:accept_response' thread.pk %}">
             {% csrf_token %}
             <button class="btn btn-outline accept-conversation" type="submit">Принять отклик</button>
           </form>
         {% endif %}
       </header>
-      <a class="messenger-listing" href="{{ thread.ad.get_absolute_url }}">
-        {% if thread.ad.cover %}
-          <img src="{{ thread.ad.cover.url }}" alt="" width="42" height="42">
-        {% else %}
-          {% include "components/icon.html" with name="image" %}
-        {% endif %}
-        <span>
-          <small>Обсуждаете объявление{% if thread.ad.status != "active" %} · {{ thread.ad.get_status_display }}{% endif %}</small>
-          <strong>{{ thread.ad.title }}</strong>
-        </span>
-        <b>{{ thread.ad.price_label }}</b>
-        {% include "components/icon.html" with name="chevron" %}
-      </a>
-      {% include "campus/meeting_panel.html" %}
+      {% if thread.ad_id %}
+        <a class="messenger-listing" href="{{ thread.ad.get_absolute_url }}">
+          {% if thread.ad.cover %}
+            <img src="{{ thread.ad.cover.url }}" alt="" width="42" height="42">
+          {% else %}
+            {% include "components/icon.html" with name="image" %}
+          {% endif %}
+          <span>
+            <small>Обсуждаете объявление{% if thread.ad.status != "active" %} · {{ thread.ad.get_status_display }}{% endif %}</small>
+            <strong>{{ thread.ad.title }}</strong>
+          </span>
+          <b>{{ thread.ad.price_label }}</b>
+          {% include "components/icon.html" with name="chevron" %}
+        </a>
+        {% include "campus/meeting_panel.html" %}
+      {% endif %}
       <div class="messenger-history" data-history data-chat="{{ thread.pk }}"
            role="log" aria-label="История переписки" aria-live="polite">
         <div class="conversation-start">Начало вашей истории · {{ thread.created_at|date:"d M Y" }}</div>
@@ -96,7 +98,7 @@
           </button>
         </form>
         <div class="composer-caption">
-          <span data-connection-status>Личная переписка по объявлению</span>
+          <span data-connection-status>Личная переписка{% if thread.ad_id %} по объявлению{% endif %}</span>
           <span class="keyboard-hint">Enter — отправить · Shift + Enter — новая строка</span>
         </div>
       </div>
@@ -112,7 +114,7 @@
           {% if threads %}
             Выберите разговор слева, чтобы продолжить переписку и договориться о встрече.
           {% else %}
-            Напишите автору понравившегося объявления. Все ваши разговоры будут здесь.
+            Напишите пользователю из его профиля или со страницы объявления.
           {% endif %}
         </p>
         <a href="{% url 'ads:ad_list' %}" class="btn btn-outline">

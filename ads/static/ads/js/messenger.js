@@ -110,7 +110,10 @@
       if (navigationSignal.aborted) return;
       const next = doc.querySelector("[data-messenger]");
       if (!next) throw new Error("fragment");
+      window.destroySiteCalendars?.(shell);
       shell.replaceWith(next);
+      window.enhanceSiteSelects?.(next);
+      window.enhanceSiteCalendars?.(next);
       if (push) window.history.pushState({}, "", url);
       setup();
       document.title = historyBox

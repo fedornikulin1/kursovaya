@@ -1,0 +1,35 @@
+  <div class="saved-searches-heading">
+    <h3 id="saved-searches-title">Сохранённые поиски</h3>
+    {% if is_saved_search %}
+      <span class="saved-searches-status">{% include "components/icon.html" with name="check" %} Этот поиск сохранён</span>
+    {% elif saved_query %}
+      <form method="post" action="{% url 'ads:save_search' %}?{{ saved_query }}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline">
+          {% include "components/icon.html" with name="plus" %} Сохранить поиск
+        </button>
+      </form>
+    {% endif %}
+  </div>
+  {% if saved_searches %}
+    <ul class="saved-searches-list">
+      {% for search in saved_searches %}
+        <li data-saved-search-id="{{ search.pk }}" class="saved-search-item{% if search.query_string == saved_query %} saved-search-active{% endif %}">
+          <a href="{% url 'ads:ad_list' %}?{{ search.query_string }}#catalog-results"
+             {% if search.query_string == saved_query %}aria-current="page"{% endif %}>{{ search.label }}</a>
+          <form method="post"
+                data-saved-search-delete action="{% url 'ads:delete_saved_search' search.pk %}{% if saved_query %}?{{ saved_query }}{% endif %}">
+            {% csrf_token %}
+            <button type="submit"
+                    class="saved-search-remove"
+                    aria-label="Удалить поиск «{{ search.label }}»"
+                    title="Удалить поиск">
+              {% include "components/icon.html" with name="close" %}
+            </button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Сохраните текущие фильтры, чтобы открыть их снова в один клик.</p>
+  {% endif %}

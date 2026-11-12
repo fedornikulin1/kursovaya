@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.test import Client, TestCase, override_settings
+from django.urls import reverse
 from rest_framework.test import APIClient
 
 from .models import FAQ, SupportMessage, SupportTicket
@@ -196,6 +197,43 @@ class SupportTests(TestCase):
         ticket = self.make_ticket()
         self.assertEqual(client.get(f"/help/tickets/{ticket.pk}/status/").status_code, 405)
         self.assertEqual(self.client.get("/api/v1/support/tickets/").status_code, 401)
+
+    def test_profile_report_reaches_support_and_is_private(self):
+        report_url = reverse("support:report_profile", args=[self.outsider.username])
+        self.client.force_login(self.user)
+        self.assertContains(self.client.get(report_url), "Причина жалобы")
+        response = self.client.post(
+            report_url,
+            {
+                "reason": "prohibited_goods",
+                "text": "Ссылка на объявление для проверки",
+                "user": self.staff.pk,
+                "target": self.root.pk,
+            },
+        )
+        ticket = SupportTicket.objects.get()
+        self.assertRedirects(response, ticket.get_absolute_url())
+        self.assertEqual(ticket.user, self.user)
+        self.assertEqual(ticket.topic, SupportTicket.Topic.SAFETY)
+        self.assertIn(f"@{self.outsider.username} (№ {self.outsider.pk})", ticket.messages.get().text)
+        self.client.force_login(self.outsider)
+        self.assertEqual(self.client.get(ticket.get_absolute_url()).status_code, 404)
+        self.client.force_login(self.staff)
+        admin_url = reverse("admin:support_supportticket_change", args=[ticket.pk])
+        self.assertContains(self.client.get(admin_url), "Причина: Запрещённые товары")
+
+    def test_profile_report_rejects_anonymous_self_and_forged_reason(self):
+        client = Client(enforce_csrf_checks=True)
+        report_url = reverse("support:report_profile", args=[self.outsider.username])
+        self.assertEqual(client.get(report_url).status_code, 302)
+        client.force_login(self.user)
+        self.assertEqual(client.post(report_url, {"reason": "spam", "text": "Повтор"}).status_code, 403)
+        self_url = reverse("support:report_profile", args=[self.user.username])
+        self.assertEqual(client.get(self_url).status_code, 403)
+        self.client.force_login(self.user)
+        response = self.client.post(report_url, {"reason": "admin", "text": "Подмена"})
+        self.assertContains(response, "Причина жалобы")
+        self.assertFalse(SupportTicket.objects.exists())
 
     def test_staff_admin_reply_is_logged_and_escapes_message_html(self):
         ticket = self.make_ticket(text="<script>alert('unsafe')</script>")

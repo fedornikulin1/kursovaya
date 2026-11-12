@@ -6,7 +6,7 @@ from .models import Ad, Favorite, Message, Response
 
 
 def catalogue(user=None):
-    queryset = Ad.objects.select_related("category", "author").prefetch_related("images")
+    queryset = Ad.objects.select_related("category", "author", "dormitory").prefetch_related("images")
     if user is not None and user.is_authenticated:
         queryset = queryset.annotate(
             is_favorite=Exists(Favorite.objects.filter(user=user, ad_id=OuterRef("pk")))
@@ -42,7 +42,12 @@ def hero_picks(user, limit=6):
     return result
 
 
-def conversations(user):
+def conversations(user, *, include_direct=False):
+    participants = Q(user=user) | Q(ad__author=user)
+    if include_direct:
+        participants |= Q(direct_peer=user)
+    else:
+        participants &= Q(ad__isnull=False)
     latest = Message.objects.filter(response_id=OuterRef("pk")).order_by("-created_at", "-pk")
     unread = (
         Message.objects.filter(response_id=OuterRef("pk"), read_at__isnull=True)
@@ -52,8 +57,8 @@ def conversations(user):
         .values("total")
     )
     return (
-        Response.objects.filter(Q(user=user) | Q(ad__author=user))
-        .select_related("ad", "ad__author", "user")
+        Response.objects.filter(participants)
+        .select_related("ad", "ad__author", "user", "direct_peer")
         .prefetch_related("ad__images")
         .annotate(
             last_message_text=Subquery(latest.values("text")[:1]),

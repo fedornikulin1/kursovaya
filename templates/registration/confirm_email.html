@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Подтверждение почты — ДоскаСВФУ{% endblock %}
+{% block content %}
+<section class="surface auth-panel" style="max-width: 500px; margin: 50px auto;">
+  <h1>Проверьте почту</h1>
+  {% if mail_is_console %}<p class="muted">Локальный режим. Код для {{ email }} записан в вывод сервера и действует 15 минут.</p>{% else %}<p class="muted">Отправили шестизначный код на {{ email }}. Он действует 15 минут.</p>{% endif %}
+  {% if error %}<p class="field-errors" role="alert">{{ error }}</p>{% endif %}
+  <form method="post">{% csrf_token %}<div class="form-field"><label for="code">Код из письма</label><input id="code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></div><button class="btn btn-primary" type="submit">Подтвердить почту</button></form>
+  <form method="post">{% csrf_token %}<button class="btn btn-quiet" type="submit" name="action" value="resend">Отправить код ещё раз</button></form>
+</section>
+{% endblock %}

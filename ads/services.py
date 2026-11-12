@@ -17,16 +17,50 @@ def profile_for(user):
     return UserProfile.objects.get_or_create(user=user)[0]
 
 
-def normalized_image(upload):
+def normalized_image(upload, *, max_size=(2000, 2000)):
     """Re-encode uploads: remove metadata, normalize orientation and cap dimensions."""
     validate_image(upload)
     upload.seek(0)
     with Image.open(upload) as image:
         image = ImageOps.exif_transpose(image).convert("RGB")
-        image.thumbnail((2000, 2000))
+        image.thumbnail(max_size)
         buffer = BytesIO()
         image.save(buffer, format="JPEG", quality=86, optimize=True)
     return ContentFile(buffer.getvalue(), name="photo.jpg")
+
+
+@transaction.atomic
+def save_profile(profile, *, changes, user_changes):
+    changes = dict(changes)
+    for name, max_size in (("avatar", (640, 640)), ("cover", (1920, 1080))):
+        if name in changes and changes[name]:
+            try:
+                changes[name] = normalized_image(changes[name], max_size=max_size)
+            except ValidationError as exc:
+                raise ValidationError({name: exc.messages}) from exc
+            except (OSError, ValueError) as exc:
+                raise ValidationError({name: "Не удалось прочитать изображение."}) from exc
+
+    current = UserProfile.objects.select_for_update().get(pk=profile.pk)
+    for name in {"avatar", "cover"}.intersection(changes):
+        previous = getattr(current, name)
+        if previous:
+            transaction.on_commit(
+                lambda storage=previous.storage, path=previous.name: storage.delete(path),
+                robust=True,
+            )
+        changes[name] = changes[name] or ""
+
+    for name, value in changes.items():
+        setattr(current, name, value)
+    if changes:
+        current.save(update_fields=changes.keys())
+    if user_changes:
+        user = current.user
+        for name, value in user_changes.items():
+            setattr(user, name, value)
+        user.save(update_fields=user_changes.keys())
+    return current
 
 
 @transaction.atomic
@@ -83,6 +117,20 @@ def start_conversation(*, ad, user, text):
     return conversation
 
 
+def direct_pair(user, recipient):
+    first_id, second_id = sorted((user.pk, recipient.pk))
+    return {"user_id": first_id, "direct_peer_id": second_id}
+
+
+@transaction.atomic
+def start_direct_conversation(*, user, recipient, text):
+    if user.pk == recipient.pk:
+        raise ValidationError("Нельзя написать самому себе.")
+    conversation, _ = Response.objects.get_or_create(ad=None, **direct_pair(user, recipient))
+    send_message(conversation=conversation, sender=user, text=text)
+    return conversation
+
+
 @transaction.atomic
 def delete_ad(*, ad, user):
     ad = Ad.objects.select_for_update().get(pk=ad.pk)
@@ -101,7 +149,7 @@ def delete_ad(*, ad, user):
 
 @transaction.atomic
 def send_message(*, conversation, sender, text):
-    if sender.pk not in (conversation.user_id, conversation.ad.author_id):
+    if sender.pk not in conversation.participant_ids:
         raise PermissionDenied("Этот диалог вам недоступен.")
     text = text.strip()
     if not text or len(text) > 4000:
@@ -112,7 +160,7 @@ def send_message(*, conversation, sender, text):
 
 
 def mark_read(conversation, user):
-    if user.pk not in (conversation.user_id, conversation.ad.author_id):
+    if user.pk not in conversation.participant_ids:
         raise PermissionDenied
     conversation.messages.filter(read_at__isnull=True).exclude(sender=user).update(
         read_at=timezone.now()

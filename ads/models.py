@@ -9,6 +9,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator, RegexVa
 from django.db import models
 from django.db.models import F, Q
 from django.urls import reverse
+from django.utils import timezone
 
 from .validators import validate_image
 
@@ -18,11 +19,22 @@ def image_path(instance, filename):
     return f"listings/{uuid.uuid4().hex}{Path(filename).suffix.lower()}"
 
 
+def profile_image_path(instance, filename):
+    return f"profiles/{uuid.uuid4().hex}{Path(filename).suffix.lower()}"
+
+
 class UserProfile(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile"
     )
+    dormitory = models.ForeignKey("campus.Dormitory", verbose_name="Общежитие", null=True, blank=True, on_delete=models.SET_NULL, related_name="residents")
     bio = models.TextField("О себе", max_length=1000, blank=True)
+    avatar = models.ImageField(
+        "Аватарка", upload_to=profile_image_path, blank=True, validators=[validate_image]
+    )
+    cover = models.ImageField(
+        "Обложка профиля", upload_to=profile_image_path, blank=True, validators=[validate_image]
+    )
     faculty = models.CharField("Институт / факультет", max_length=150, blank=True)
     group = models.CharField("Учебная группа", max_length=50, blank=True)
     role = models.CharField(
@@ -56,6 +68,13 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return self.user.username
+
+
+class EmailConfirmation(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="email_confirmation")
+    code_hash = models.CharField(max_length=256)
+    created_at = models.DateTimeField(default=timezone.now)
+    attempts = models.PositiveSmallIntegerField(default=0)
 
 
 class Category(models.Model):
@@ -123,6 +142,7 @@ class Ad(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="ads", verbose_name="Автор"
     )
     location = models.CharField("Место встречи", max_length=150, default="Кампус СВФУ")
+    dormitory = models.ForeignKey("campus.Dormitory", verbose_name="Общежитие", null=True, blank=True, on_delete=models.SET_NULL, related_name="ads")
     condition = models.CharField(
         "Состояние",
         max_length=15,
@@ -235,16 +255,40 @@ class Favorite(models.Model):
         constraints = [models.UniqueConstraint(fields=["user", "ad"], name="unique_favorite")]
 
 
+class SavedSearch(models.Model):
+    MAX_QUERY_LENGTH = 1800
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="saved_searches"
+    )
+    query_string = models.CharField(max_length=MAX_QUERY_LENGTH)
+    label = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "query_string"], name="unique_saved_search")
+        ]
+
+
 class Response(models.Model):
-    """One private conversation per interested user and listing.
+    """A conversation about a listing, or a direct conversation between two users.
 
     text/reply retain the original data; migration copies them into Message rows.
     New messages are written only to Message.
     """
 
-    ad = models.ForeignKey(Ad, on_delete=models.CASCADE, related_name="responses")
+    ad = models.ForeignKey(Ad, on_delete=models.CASCADE, related_name="responses", null=True, blank=True)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="responses"
+    )
+    direct_peer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="direct_responses",
+        null=True,
+        blank=True,
     )
     text = models.TextField("Первый отклик (архив)", blank=True)
     reply = models.TextField("Ответ (архив)", blank=True)
@@ -255,11 +299,35 @@ class Response(models.Model):
     class Meta:
         ordering = ["-updated_at", "-pk"]
         constraints = [
-            models.UniqueConstraint(fields=["ad", "user"], name="unique_ad_conversation")
+            models.UniqueConstraint(fields=["ad", "user"], name="unique_ad_conversation"),
+            models.UniqueConstraint(
+                fields=["user", "direct_peer"],
+                condition=Q(ad__isnull=True),
+                name="unique_direct_conversation",
+            ),
+            models.CheckConstraint(
+                condition=Q(ad__isnull=False, direct_peer__isnull=True)
+                | Q(
+                    ad__isnull=True,
+                    direct_peer__isnull=False,
+                    user_id__lt=F("direct_peer_id"),
+                    is_accepted=False,
+                ),
+                name="response_participant_shape",
+            ),
         ]
 
+    @property
+    def participant_ids(self):
+        return self.user_id, self.ad.author_id if self.ad_id else self.direct_peer_id
+
+    def other_participant(self, viewer):
+        if self.user_id != viewer.pk:
+            return self.user
+        return self.ad.author if self.ad_id else self.direct_peer
+
     def __str__(self):
-        return f"{self.user} → {self.ad}"
+        return f"{self.user} → {self.ad if self.ad_id else self.direct_peer}"
 
 
 class Message(models.Model):

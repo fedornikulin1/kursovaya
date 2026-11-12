@@ -1,13 +1,19 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}
   {% if ad.pk %}Редактирование{% else %}Новое объявление{% endif %} — ДоскаСВФУ{% endblock %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'ads/css/ad-editor.css' %}?v=3">
+  <script defer src="{% static 'ads/js/ad-tip.js' %}?v=3"></script>
+{% endblock %}
+{% block page_widgets %}{% include "components/ad_tip.html" %}{% endblock %}
 {% block content %}
-  <div class="page-intro">
-    <span class="eyebrow subtle">ДАЙ ВЕЩАМ НОВУЮ ИСТОРИЮ</span>
-    <h1>{% if ad.pk %}Редактирование объявления{% else %}Новое объявление{% endif %}</h1>
-    <p>Расскажи о вещи, добавь фотографии и договорись о встрече.</p>
-  </div>
-  <div class="editor-layout">
+  <div class="ad-editor">
+    <div class="page-intro">
+      <span class="eyebrow subtle">ДАЙ ВЕЩАМ НОВУЮ ИСТОРИЮ</span>
+      <h1>{% if ad.pk %}Редактирование объявления{% else %}Новое объявление{% endif %}</h1>
+      <p>Расскажи о вещи, добавь фотографии и договорись о встрече.</p>
+    </div>
     <form method="post"
           enctype="multipart/form-data"
           class="surface form-surface">
@@ -23,29 +29,14 @@
           </div>
         {% endif %}
       {% endfor %}
-      <fieldset class="study-editor">
-        <legend>Передай следующему курсу</legend>
-        <label class="study-switch" for="{{ form.is_study.id_for_label }}">{{ form.is_study }} <span><strong>Добавить в учебный обмен</strong><small>Подберём вашу вещь студентам по предмету и курсу.</small></span></label>
-        <div class="study-field-grid" data-study-settings>
-          {% for field in form.study_fields %}
-            <div class="form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}</div>
-          {% endfor %}
-        </div>
-        <p class="field-help">Указывайте предмет так, как он называется в учебном плане. Обмен, бесплатная и временная передача не требуют цены.</p>
-      </fieldset>
       {% include "components/photo_editor.html" %}
       <div class="form-actions">
-        <button type="submit" class="btn btn-primary">Сохранить объявление</button>
+        <button type="submit" class="btn btn-primary ad-save-button" data-ad-save>
+          <span class="ad-save-mark" aria-hidden="true">{% include "components/icon.html" with name="check" %}</span>
+          <span data-ad-save-label>Сохранить объявление</span>
+        </button>
         <a class="btn btn-quiet" href="{% url 'ads:my_ads' %}">Отмена</a>
       </div>
     </form>
-    <aside>
-      <div class="community-note">
-        <h3>Хорошее объявление заметнее</h3>
-        <p>Снимай при дневном свете. Покажи детали и честно расскажи о состоянии вещи.</p>
-        <p>Контакты для звонка можно настроить в профиле. По умолчанию номер скрыт.</p>
-        <a href="{% url 'ads:edit_profile' %}">Настроить контакты →</a>
-      </div>
-    </aside>
   </div>
 {% endblock %}

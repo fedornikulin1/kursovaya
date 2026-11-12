@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from ads.forms import RegisterForm
 from ads.models import Ad, AdImage, Category, Message, Response, Review, UserProfile
-from ads.services import create_review, profile_for, save_ad, start_conversation
+from ads.services import create_review, profile_for, save_ad, save_profile, start_conversation
 
 User = get_user_model()
 
@@ -14,6 +14,7 @@ class RegisterSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
     first_name = serializers.CharField(max_length=150)
     email = serializers.EmailField()
+    dormitory = serializers.IntegerField(required=False, allow_null=True)
     password1 = serializers.CharField(write_only=True, trim_whitespace=False)
     password2 = serializers.CharField(write_only=True, trim_whitespace=False)
 
@@ -37,10 +38,12 @@ class UserSerializer(serializers.ModelSerializer):
 class PublicProfileSerializer(UserSerializer):
     faculty = serializers.CharField(source="profile.faculty", read_only=True, default="")
     bio = serializers.CharField(source="profile.bio", read_only=True, default="")
+    avatar = serializers.ImageField(source="profile.avatar", read_only=True, default=None)
+    cover = serializers.ImageField(source="profile.cover", read_only=True, default=None)
     rating = serializers.SerializerMethodField()
 
     class Meta(UserSerializer.Meta):
-        fields = UserSerializer.Meta.fields + ["faculty", "bio", "rating"]
+        fields = UserSerializer.Meta.fields + ["faculty", "bio", "avatar", "cover", "rating"]
 
     def get_rating(self, obj) -> dict:
         return obj.reviews_received.aggregate(average=Avg("rating"), count=Count("id"))
@@ -54,6 +57,8 @@ class ProfileSerializer(serializers.ModelSerializer):
     last_name = serializers.CharField(
         max_length=150, required=False, write_only=True, allow_blank=True
     )
+    avatar = serializers.ImageField(required=False, allow_null=True)
+    cover = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = UserProfile
@@ -64,22 +69,26 @@ class ProfileSerializer(serializers.ModelSerializer):
             "bio",
             "faculty",
             "group",
+            "dormitory",
             "role",
             "phone",
             "show_phone",
             "reduce_motion",
             "telegram",
+            "avatar",
+            "cover",
         ]
 
     def update(self, instance, validated_data):
-        from django.db import transaction
-
-        with transaction.atomic():
-            for field in ("first_name", "last_name"):
-                if field in validated_data:
-                    setattr(instance.user, field, validated_data.pop(field))
-            instance.user.save(update_fields=["first_name", "last_name"])
-            return super().update(instance, validated_data)
+        names = {
+            field: validated_data.pop(field)
+            for field in ("first_name", "last_name")
+            if field in validated_data
+        }
+        try:
+            return save_profile(instance, changes=validated_data, user_changes=names)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.message_dict) from exc
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -119,6 +128,7 @@ class AdSerializer(serializers.ModelSerializer):
             "category_name",
             "author",
             "location",
+            "dormitory",
             "is_study",
             "subject",
             "course",

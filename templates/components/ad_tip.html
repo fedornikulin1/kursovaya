@@ -1,0 +1,33 @@
+<details class="ad-tip" data-ad-tip{% if not ad.pk and not form.is_bound %} data-ad-tip-auto{% endif %}>
+  <summary class="ad-tip-trigger">{% include "components/icon.html" with name="help" %} Советы</summary>
+  <aside class="ad-tip-panel" aria-labelledby="ad-tip-title">
+    <h2 id="ad-tip-title">Советы по объявлению</h2>
+    <button type="button" class="ad-tip-close" data-ad-tip-close aria-label="Закрыть советы" hidden>
+      {% include "components/icon.html" with name="close" %}
+    </button>
+    <div class="ad-tip-slides">
+      <div class="ad-tip-slide is-current" data-ad-tip-slide>
+        <h3>Хочешь принимать звонки?</h3>
+        <p>Номер телефона скрыт по умолчанию. Чтобы покупатели могли позвонить, <a href="{% url 'ads:settings' %}">разреши звонки в настройках</a>.</p>
+      </div>
+      <div class="ad-tip-slide" data-ad-tip-slide inert>
+        <h3>Покажи вещь при дневном свете</h3>
+        <p>Сделай общий кадр и сними детали крупно. Если есть дефекты, сфотографируй их тоже.</p>
+      </div>
+      <div class="ad-tip-slide" data-ad-tip-slide inert>
+        <h3>Уточни название</h3>
+        <p>Напиши, что продаёшь, и добавь модель или размер. Например, «Настольная лампа IKEA».</p>
+      </div>
+      <div class="ad-tip-slide" data-ad-tip-slide inert>
+        <h3>Укажи, где можно забрать вещь</h3>
+        <p>Выбери общежитие, если товар там. Точное место и время можно согласовать в чате.</p>
+      </div>
+    </div>
+    <div class="ad-tip-controls" data-ad-tip-controls hidden>
+      <div class="ad-tip-progress" data-ad-tip-progress aria-hidden="true"></div>
+      <span data-ad-tip-count></span>
+      <button type="button" class="ad-tip-next" data-ad-tip-next>Следующий совет {% include "components/icon.html" with name="arrow" %}</button>
+    </div>
+    <span class="sr-only" role="status" data-ad-tip-status></span>
+  </aside>
+</details>

@@ -1,0 +1,37 @@
+{% with route=request.resolver_match.url_name section=request.resolver_match.app_name %}
+  <nav class="desktop-nav" aria-label="Основная навигация" data-header-nav>
+    <a href="{% url 'ads:ad_list' %}?food=1" aria-label="Продукты"
+       {% if food_mode %}aria-current="page"{% endif %}>
+      {% include "components/icon.html" with name="grid" %}
+      <span class="header-nav-label">Продукты</span>
+    </a>
+    <a href="{% url 'campus:chat' %}" aria-label="Чат кампуса"
+       {% if route == 'chat' %}aria-current="page"{% endif %}>
+      {% include "components/icon.html" with name="community" %}
+      <span class="header-nav-label">Чат кампуса</span>
+    </a>
+    <a href="{% url 'ads:my_ads' %}" aria-label="Мои объявления"
+       {% if route == 'my_ads' %}aria-current="page"{% elif route == 'ad_update' or route == 'ad_delete' %}aria-current="location"{% endif %}>
+      {% include "components/icon.html" with name="document" %}
+      <span class="header-nav-label">Мои объявления</span>
+    </a>
+    <a href="{% url 'ads:favorite_list' %}" aria-label="Избранное"
+       {% if route == 'favorite_list' %}aria-current="page"{% endif %}>
+      {% include "components/icon.html" with name="heart" %}
+      <span class="header-nav-label">Избранное</span>
+    </a>
+    <a href="{% url 'ads:inbox' %}" aria-label="Сообщения"
+       {% if route == 'inbox' %}aria-current="page"{% elif route == 'conversation' or route == 'profile_message' or route == 'meeting_propose' %}aria-current="location"{% endif %}>
+      {% include "components/icon.html" with name="chat" %}
+      <span class="header-nav-label">Сообщения</span>
+      {% if unread_messages %}<span class="notification-count">{{ unread_messages }}</span>{% endif %}
+    </a>
+    <a href="{% url 'support:help' %}" aria-label="Помощь"
+       {% if route == 'help' and section == 'support' %}aria-current="page"{% elif section == 'support' %}aria-current="location"{% endif %}>
+      {% include "components/icon.html" with name="help" %}
+      <span class="header-nav-label">Помощь</span>
+      {% if unread_support_answers %}<span class="notification-count">{{ unread_support_answers }}</span>{% endif %}
+    </a>
+    <span class="header-nav-underline" aria-hidden="true"></span>
+  </nav>
+{% endwith %}

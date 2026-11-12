@@ -9,10 +9,16 @@
              width="600"
              height="450">
       {% else %}
-        <div class="photo-placeholder">
-          {% include "components/icon.html" with name=ad.category.icon %}
-          <span>{{ ad.category.name }}</span>
-        </div>
+        {% if ad.category.name == 'Продукты' %}
+          <div class="photo-placeholder photo-placeholder-food">
+            {% include "components/icon.html" with name="bag" %}
+          </div>
+        {% else %}
+          <div class="photo-placeholder">
+            {% include "components/icon.html" with name=ad.category.icon %}
+            <span>{{ ad.category.name }}</span>
+          </div>
+        {% endif %}
       {% endif %}
     </a>
     <span class="listing-kind">{{ ad.get_kind_display }}</span>
@@ -48,7 +54,7 @@
     <p class="listing-price">{{ ad.price_label }}</p>
     <p class="listing-location">
       {% include "components/icon.html" with name="pin" %}
-      {{ ad.location }}
+      {% if ad.dormitory %}{{ ad.dormitory }}{% else %}{{ ad.location }}{% endif %}
     </p>
     <div class="listing-meta">
       <span>{{ ad.author.first_name|default:ad.author.username }}</span>

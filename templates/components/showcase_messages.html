@@ -1,0 +1,29 @@
+<ul class="showcase-message-set" {% if duplicate %}aria-hidden="true"{% endif %}>
+  {% if buyers %}
+    <li>
+      <div><span aria-hidden="true">Л</span><strong>Лена</strong></div>
+      <p>У кого есть учебник по алгоритмам? Нужен к пятнице.</p>
+    </li>
+    <li>
+      <div><span aria-hidden="true">С</span><strong>Саша</strong></div>
+      <p>Ищу настольную лампу для комнаты. Заберу вечером.</p>
+    </li>
+    <li>
+      <div><span aria-hidden="true">М</span><strong>Миша</strong></div>
+      <p>Можно одолжить калькулятор на одну пару?</p>
+    </li>
+  {% else %}
+    <li>
+      <div><span aria-hidden="true">А</span><strong>Алина</strong></div>
+      <p>Отдам конспекты по матанализу. Встретимся у библиотеки.</p>
+    </li>
+    <li>
+      <div><span aria-hidden="true">Д</span><strong>Дима</strong></div>
+      <p>Есть удлинитель на три розетки. Могу принести после пары.</p>
+    </li>
+    <li>
+      <div><span aria-hidden="true">Н</span><strong>Ника</strong></div>
+      <p>Продаю настольную лампу. Её можно посмотреть в общежитии.</p>
+    </li>
+  {% endif %}
+</ul>

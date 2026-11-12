@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Новое сообщение — ДоскаСВФУ{% endblock %}
+{% block content %}
+  <div class="surface auth-surface">
+    <h1>Новое сообщение</h1>
+    <p class="muted">Кому: {{ recipient.get_full_name|default:recipient.username }}</p>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-field">
+        <label for="profile-message-text">Сообщение</label>
+        <textarea id="profile-message-text" name="text" class="direct-message-text"
+                  rows="4" maxlength="4000" placeholder="Напишите сообщение…" required>{{ form.text.value|default_if_none:"" }}</textarea>
+        {{ form.text.errors }}
+      </div>
+      <button class="btn btn-primary" type="submit">
+        {% include "components/icon.html" with name="send" %} Отправить
+      </button>
+      <a href="{% url 'ads:user_profile' recipient.username %}" class="btn btn-quiet">К профилю</a>
+    </form>
+  </div>
+{% endblock %}

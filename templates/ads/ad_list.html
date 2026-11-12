@@ -1,17 +1,30 @@
 {% extends "base.html" %}
 {% load static %}
+{% block title %}{% if food_mode %}Продукты — ДоскаСВФУ{% else %}{{ block.super }}{% endif %}{% endblock %}
+{% block extra_head %}
+  {% if food_mode %}
+    <link rel="stylesheet" href="{% static 'ads/css/food-catalog.css' %}?v=9">
+    <script defer src="{% static 'ads/js/food-ribbon.js' %}?v=4"></script>
+  {% endif %}
+  <script defer src="{% static 'ads/js/saved-searches.js' %}?v=1"></script>
+{% endblock %}
 {% block content %}
-  {% include "components/campus_hero.html" %}
-  <a href="{% url 'campus:exchange' %}" class="study-home-link"><span class="study-link-icon">{% include "components/icon.html" with name="book" %}</span><span><strong>Передай следующему курсу</strong><small>Учебники, обмен и вещи на время. Найди нужное по своему предмету.</small></span><b>Учебный обмен →</b></a>
-    <section aria-label="Поиск объявлений" class="search-section">
+  {% if food_mode %}
+    {% include "components/food_hero.html" %}
+  {% else %}
+    {% include "components/campus_hero.html" %}
+  {% endif %}
+    <section aria-label="{% if food_mode %}Поиск продуктов{% else %}Поиск объявлений{% endif %}" class="search-section{% if food_mode %} food-search{% endif %}">
       <form method="get" class="search-bar">
+        {% if food_mode %}<input type="hidden" name="food" value="1">{% endif %}
+        {% if request.GET.dormitory %}<input type="hidden" name="dormitory" value="{{ request.GET.dormitory }}">{% endif %}
         <label class="search-input">
           {% include "components/icon.html" with name="search" %}
           <span class="sr-only">Поиск</span>
           <input type="search"
                  name="q"
                  value="{% firstof request.GET.q request.GET.title '' %}"
-                 placeholder="Что ищем для студенческой жизни?">
+                 placeholder="{% if food_mode %}Чипсы, шоколад, напитки…{% else %}Что ищем для студенческой жизни?{% endif %}">
         </label>
         {% if request.GET.category %}
           <input type="hidden" name="category" value="{{ request.GET.category }}">
@@ -20,10 +33,18 @@
           Найти <span class="search-arrow">→</span>
         </button>
       </form>
+      {% if food_mode %}
+        <nav class="food-quick-search" aria-label="Быстрый поиск продуктов">
+          <a href="{% querystring q='Чипсы' title=None page=None %}#catalog-results">Чипсы</a>
+          <a href="{% querystring q='Шоколад' title=None page=None %}#catalog-results">Шоколад</a>
+          <a href="{% querystring q='Кола' title=None page=None %}#catalog-results">Кола</a>
+        </nav>
+      {% endif %}
     </section>
+    {% if not food_mode %}
     <section class="category-tiles" id="catalog-categories" aria-label="Быстрый выбор категории">
       {% for category in categories %}
-        <a href="?category={{ category.pk }}"
+        <a href="{% if category.name == 'Продукты' %}?food=1{% else %}?category={{ category.pk }}{% endif %}"
            class="category-tile tone-{{ forloop.counter0|divisibleby:'2'|yesno:'blue,mint' }} {% if request.GET.category == category.pk|stringformat:'s' %}chosen{% endif %}">
           <span class="category-tile-icon">{% include "components/icon.html" with name=category.icon %}</span>
           <span>{{ category.name }}</span>
@@ -34,14 +55,30 @@
     {% if categories|length > 6 %}
       <button type="button" class="category-toggle" data-category-toggle aria-expanded="false" aria-controls="catalog-categories">Все категории</button>
     {% endif %}
+    {% endif %}
     <div class="catalog-layout" id="catalog-results">
       <aside class="catalog-sidebar">
         <details class="filter-panel" open>
-          <summary><span class="filter-heading-icon">{% include "components/icon.html" with name="filter" %}</span><span>Подобрать своё<small>Только то, что тебе нужно</small></span><span class="filter-counter">{{ active_filters_count }}</span></summary>
+          <summary>
+            <span class="filter-heading-icon">{% include "components/icon.html" with name="filter" %}</span>
+            <span class="filter-title">Подобрать своё</span>
+            <span class="filter-counter{% if active_filters_count %} is-active{% endif %}" title="Активные фильтры">{{ active_filters_count }}</span>
+            <span class="filter-chevron">{% include "components/icon.html" with name="chevron" %}</span>
+          </summary>
           <form method="get" class="filter-form">
+            {% if food_mode %}<input type="hidden" name="food" value="1">{% endif %}
             {% if request.GET.q %}
               <input type="hidden" name="q" value="{{ request.GET.q }}">
             {% endif %}
+            <div class="form-field">
+              <label for="filter-dormitory">Общежитие</label>
+              <select name="dormitory" id="filter-dormitory" data-pretty-select>
+                <option value="">Все общежития</option>
+                <option value="outside" {% if request.GET.dormitory == 'outside' %}selected{% endif %}>Не в общежитии</option>
+                {% for dorm in dormitories %}<option value="{{ dorm.pk }}" {% if request.GET.dormitory == dorm.pk|stringformat:'s' %}selected{% endif %}>{{ dorm.name }}</option>{% endfor %}
+              </select>
+            </div>
+            {% if not food_mode %}
             <div class="form-field">
               <label for="filter-category">Категория</label>
               <select name="category" id="filter-category" data-pretty-select>
@@ -66,6 +103,7 @@
                 {% endfor %}
               </select>
             </div>
+            {% endif %}
             <fieldset class="price-range">
               <legend>Цена, ₽</legend>
               <div>
@@ -105,9 +143,18 @@
               <div class="field-errors">{{ filter.form.errors }}</div>
             {% endif %}
             <button class="btn btn-primary w-full" type="submit">Показать объявления</button>
-            <a href="{% url 'ads:ad_list' %}" class="reset-link">Сбросить фильтры</a>
+            <a href="{% url 'ads:ad_list' %}{% if food_mode %}?food=1{% endif %}" class="reset-link">Сбросить фильтры</a>
           </form>
         </details>
+        {% if food_mode %}
+        {% if not account_profile.dormitory.is_active %}
+        <div class="food-side-note">
+          <h3>{% include "components/icon.html" with name="pin" %} Сначала рядом</h3>
+          <p>Укажи общежитие в профиле, чтобы объявления соседей показывались первыми.</p>
+          <a href="{% url 'ads:edit_profile' %}">Указать общежитие →</a>
+        </div>
+        {% endif %}
+        {% else %}
         <div class="community-note">
           <span class="community-icon">{% include "components/icon.html" with name="book" %}</span>
           <h3>
@@ -118,13 +165,14 @@
           <p>Договоритесь о встрече в знакомом месте и посмотрите вещь перед покупкой.</p>
           <span>СВОИ РЯДОМ ↗</span>
         </div>
+        {% endif %}
       </aside>
       <section class="catalog-results" aria-label="Объявления">
         <div class="section-toolbar">
           <div>
-            <span class="eyebrow subtle">НАХОДКИ ДЛЯ ТЕБЯ</span>
+            {% if not food_mode %}<span class="eyebrow subtle">НАХОДКИ ДЛЯ ТЕБЯ</span>{% endif %}
             <h2>
-              {% if request.GET.q or request.GET.category or request.GET.kind or request.GET.price_min or request.GET.price_max or request.GET.price_type %}Результаты поиска{% else %}Свежие объявления{% endif %}
+              {% if food_mode %}{% if active_filters_count %}Результаты поиска{% else %}Предложения{% endif %}{% elif request.GET.q or request.GET.category or request.GET.kind or request.GET.price_min or request.GET.price_max or request.GET.price_type or request.GET.dormitory %}Результаты поиска{% else %}Свежие объявления{% endif %}
               <span class="result-count">{{ paginator.count }}</span>
             </h2>
           </div>
@@ -136,6 +184,7 @@
             {% endfor %}
             <label class="sr-only" for="sort">Сортировка</label>
             <select id="sort" name="ordering" data-autosubmit data-pretty-select>
+              {% if user.is_authenticated and user.profile.dormitory_id %}<option value="" {% if not request.GET.ordering %}selected{% endif %}>Сначала рядом</option>{% endif %}
               <option value="-date"
                       {% if request.GET.ordering == '-date' %}selected{% endif %}>Сначала новые</option>
               <option value="price"
@@ -146,16 +195,34 @@
             <button type="submit" class="sort-submit">Применить</button>
           </form>
         </div>
+        {% if not food_mode or active_filters_count or saved_searches %}
+          {% if saved_query or saved_searches %}
+            {% include "ads/saved_searches.html" %}
+          {% endif %}
+        {% endif %}
         <div class="listing-grid">
           {% for ad in ads %}
             {% include "components/card.html" %}
           {% empty %}
+            {% if food_mode %}
+            <div class="food-empty">
+              <span class="food-empty-icon">{% include "components/icon.html" with name="bag" %}</span>
+              <h3>{% if active_filters_count %}Ничего не нашлось{% else %}Пока нет предложений{% endif %}</h3>
+              <p>{% if active_filters_count %}Попробуй изменить запрос или сбросить фильтры.{% else %}Добавь объявление с фото и ценой или спроси в чате, есть ли у соседей то, что нужно.{% endif %}</p>
+              <div class="food-empty-actions">
+                {% if active_filters_count %}<a class="btn btn-primary" href="?food=1">Все продукты</a>{% else %}<a class="btn btn-primary" href="{% url 'ads:ad_create' %}?food=1">{% include "components/icon.html" with name="plus" %} Добавить предложение</a>{% endif %}
+                <a class="btn btn-outline" href="{% url 'campus:chat' %}">Спросить в чате</a>
+              </div>
+            </div>
+            {% else %}
             <div class="empty-state">
               {% include "components/icon.html" with name="search" %}
               <h3>Пока ничего не нашлось</h3>
               <p>Попробуйте другой запрос или уберите часть фильтров.</p>
               <a class="btn btn-outline" href="{% url 'ads:ad_list' %}">Все объявления</a>
+              <a class="btn btn-quiet" href="{% url 'campus:chat' %}">Спросить в чате кампуса</a>
             </div>
+            {% endif %}
           {% endfor %}
         </div>
         {% include "components/pagination.html" %}

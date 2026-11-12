@@ -16,6 +16,30 @@
     const panel = event.target.closest("[data-meeting-panel]");
     if (panel) panel.dataset.dirty = "true";
   });
+  document.addEventListener("click", (event) => {
+    const panel = document.querySelector("[data-meeting-panel][open]");
+    if (!panel) return;
+    if (event.target.closest("[data-meeting-close]")) {
+      panel.open = false;
+    } else if (
+      !panel.contains(event.target) &&
+      !event.target.closest(".flatpickr-calendar")
+    ) {
+      panel.open = false;
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (
+      event.key !== "Escape" ||
+      document.querySelector(".flatpickr-calendar.open")
+    )
+      return;
+    const panel = document.querySelector("[data-meeting-panel][open]");
+    if (panel) {
+      panel.open = false;
+      panel.querySelector("summary")?.focus();
+    }
+  });
   let polling = false;
   async function refreshMeeting() {
     const panel = document.querySelector("[data-meeting-panel]");
@@ -46,7 +70,10 @@
       const next = parsed.querySelector("[data-meeting-panel]");
       if (next) {
         next.open = panel.open;
+        window.destroySiteCalendars?.(panel);
         panel.replaceWith(next);
+        window.enhanceSiteSelects?.(next);
+        window.enhanceSiteCalendars?.(next);
       }
     } catch {
       /* Keep the last known state during a temporary network failure. */

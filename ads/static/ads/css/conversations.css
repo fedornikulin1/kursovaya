@@ -663,6 +663,9 @@
   background: #e8efff;
   color: var(--blue);
 }
+.direct-message-text {
+  resize: none;
+}
 .contact-compose textarea {
   border: 1px solid #dfe6f3;
   background: #fafbfe;
@@ -670,7 +673,7 @@
   padding: 13px;
   width: 100%;
   min-height: 115px;
-  resize: vertical;
+  resize: none;
   font-size: 12px;
   outline: 0;
 }

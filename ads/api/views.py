@@ -1,4 +1,6 @@
 from django.contrib.auth import get_user_model
+from django.conf import settings
+from smtplib import SMTPException
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -7,12 +9,14 @@ from rest_framework import generics, mixins, permissions, serializers, status, v
 from rest_framework.decorators import action
 from rest_framework.response import Response as APIResponse
 from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenBlacklistView
 
 from ads.filters import AdFilter
 from ads.models import Ad, AdImage, Category, Favorite, Review
 from ads.selectors import catalogue, conversations, visible_ads
 from ads.services import mark_read, profile_for, save_ad, send_message
+from campus.models import Dormitory
 from .serializers import (
     AdSerializer,
     CategorySerializer,
@@ -48,8 +52,52 @@ class RegisterView(generics.CreateAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
+        try:
+            user = serializer.save()
+        except (OSError, SMTPException):
+            return APIResponse({"detail": "Не удалось отправить письмо. Попробуйте позже."}, status=503)
         return APIResponse(UserSerializer(user).data, status=201)
+
+
+class ConfirmEmailView(APIView):
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+    def post(self, request):
+        if not settings.EMAIL_VERIFICATION_REQUIRED:
+            return APIResponse({"detail": "Подтверждение почты сейчас отключено. Можно войти с паролем."}, status=404)
+        from ads.email_verification import confirm_email
+        username = str(request.data.get("username", ""))
+        code = str(request.data.get("code", ""))
+        user = get_user_model().objects.filter(username=username, is_active=False).first()
+        if user and len(code) == 6 and code.isascii() and code.isdigit() and confirm_email(user, code):
+            return APIResponse({"detail": "Почта подтверждена."})
+        return APIResponse({"detail": "Неверный или просроченный код."}, status=400)
+
+
+class ResendEmailCodeView(APIView):
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
+    def post(self, request):
+        if not settings.EMAIL_VERIFICATION_REQUIRED:
+            return APIResponse({"detail": "Подтверждение почты сейчас отключено. Можно войти с паролем."}, status=404)
+        from datetime import timedelta
+        from django.utils import timezone
+        from ads.email_verification import send_confirmation
+        user = get_user_model().objects.filter(username=str(request.data.get("username", "")), is_active=False).first()
+        if user:
+            challenge = getattr(user, "email_confirmation", None)
+            if challenge and challenge.created_at <= timezone.now() - timedelta(seconds=60):
+                try:
+                    send_confirmation(user)
+                except (OSError, SMTPException):
+                    return APIResponse({"detail": "Не удалось отправить письмо. Попробуйте позже."}, status=503)
+        return APIResponse({"detail": "Если ожидается подтверждение, код отправлен."})
 
 
 class LoginView(TokenObtainPairView):
@@ -85,6 +133,17 @@ class PublicProfileView(generics.RetrieveAPIView):
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = CategorySerializer
     queryset = Category.objects.filter(is_active=True)
+    pagination_class = None
+
+
+class DormitoryViewSet(viewsets.ReadOnlyModelViewSet):
+    class DormitorySerializer(serializers.ModelSerializer):
+        class Meta:
+            model = Dormitory
+            fields = ["id", "name", "address"]
+
+    serializer_class = DormitorySerializer
+    queryset = Dormitory.objects.filter(is_active=True)
     pagination_class = None
 
 
@@ -192,7 +251,9 @@ class ConversationViewSet(
             from ads.models import Response
 
             return Response.objects.none()
-        return conversations(self.request.user)
+        # The listing endpoints keep their existing shape. Both kinds of private
+        # conversation use the same participant checks for message delivery.
+        return conversations(self.request.user, include_direct=self.action in {"messages", "read"})
 
     def get_serializer_class(self):
         return ConversationCreateSerializer if self.action == "create" else ConversationSerializer

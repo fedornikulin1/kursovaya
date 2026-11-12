@@ -10,6 +10,8 @@ from ads.models import Ad, Response
 from ads.services import send_message
 from .models import Meeting, StudyRequest
 
+MEETING_RESERVATION_DURATION = timedelta(hours=1)
+
 
 def require_participant(conversation, user):
     if user.pk not in (conversation.user_id, conversation.ad.author_id):
@@ -25,7 +27,8 @@ def expire_meetings(ad):
 
 @transaction.atomic
 def propose_meeting(
-    *, conversation, user, place, starts_at, ends_at, return_on=None, study_request=None
+    *, conversation, user, starts_at, place=None, place_note="", ends_at=None,
+    return_on=None, study_request=None,
 ):
     ad = Ad.objects.select_for_update().get(pk=conversation.ad_id)
     require_participant(conversation, user)
@@ -33,8 +36,13 @@ def propose_meeting(
     now = timezone.now()
     if ad.status != Ad.Status.ACTIVE:
         raise ValidationError("Объявление уже закрыто.")
-    if not place.is_active:
+    if place and not place.is_active:
         raise ValidationError("Это место больше недоступно.")
+    place_note = place_note.strip()
+    if not place and not place_note:
+        raise ValidationError("Укажите место встречи.")
+    if ends_at is None:
+        ends_at = starts_at + MEETING_RESERVATION_DURATION
     if (
         starts_at <= now
         or ends_at <= starts_at
@@ -44,7 +52,9 @@ def propose_meeting(
         raise ValidationError(
             "Выберите будущую встречу в ближайшие 30 дней, интервалом до 4 часов."
         )
-    if ad.available_from and (starts_at < ad.available_from or ends_at > ad.available_until):
+    if not place_note and ad.available_from and (
+        starts_at < ad.available_from or ends_at > ad.available_until
+    ):
         raise ValidationError("Встреча должна попадать в интервал, указанный автором объявления.")
     if Meeting.objects.filter(ad=ad, status__in=Meeting.LIVE).exists():
         raise ValidationError("Вещь уже забронирована или передана. Дождитесь освобождения брони.")
@@ -65,6 +75,7 @@ def propose_meeting(
         ad=ad,
         proposed_by=user,
         place=place,
+        place_note=place_note,
         starts_at=starts_at,
         ends_at=ends_at,
         return_on=return_on,
@@ -75,7 +86,7 @@ def propose_meeting(
     send_message(
         conversation=conversation,
         sender=user,
-        text=f"Предлагаю встречу: {place.name}, {when}. Подтвердите её в карточке встречи. Бронь появится после подтверждения.",
+        text=f"Предлагаю встречу: {meeting.meeting_place_label}, {when}. Подтвердите её в карточке встречи. Бронь появится после подтверждения.",
     )
     return meeting
 
@@ -93,9 +104,9 @@ def meeting_action(*, meeting, user, action):
     if action == "confirm":
         if state != Meeting.Status.PROPOSED or meeting.proposed_by_id == user.pk:
             raise ValidationError("Предложение должен подтвердить другой участник.")
-        if ad.status != Ad.Status.ACTIVE or not meeting.place.is_active:
+        if ad.status != Ad.Status.ACTIVE or (meeting.place_id and not meeting.place.is_active):
             raise ValidationError("Объявление или место встречи больше недоступно.")
-        if ad.available_from and (
+        if not meeting.place_note and ad.available_from and (
             meeting.starts_at < ad.available_from or meeting.ends_at > ad.available_until
         ):
             raise ValidationError(
@@ -104,7 +115,8 @@ def meeting_action(*, meeting, user, action):
         if Meeting.objects.filter(ad=ad, status__in=Meeting.LIVE).exists():
             raise ValidationError("Вещь уже забронирована в другом разговоре.")
         meeting.status = Meeting.Status.CONFIRMED
-        text = "Встреча подтверждена. Вещь забронирована до конца согласованного интервала."
+        until = timezone.localtime(meeting.ends_at).strftime("%d.%m.%Y %H:%M")
+        text = f"Встреча подтверждена. Вещь забронирована до {until} (Якутск)."
     elif action == "cancel":
         if state not in (Meeting.Status.PROPOSED, Meeting.Status.CONFIRMED):
             raise ValidationError("Эту встречу уже нельзя отменить: проверьте статус передачи.")

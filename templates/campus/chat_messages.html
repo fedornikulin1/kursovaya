@@ -1,0 +1,28 @@
+{% for message in chat_messages %}
+  {% with author_name=message.author.get_full_name|default:message.author.username %}
+    <article class="campus-chat-message{% if message.kind == 'wanted' %} is-wanted{% endif %}{% if message.author_id == user.pk %} is-own{% endif %}"
+             data-campus-message="{{ message.pk }}" id="campus-message-{{ message.pk }}">
+      <a class="campus-chat-avatar" href="{% url 'ads:user_profile' message.author.username %}" aria-label="Профиль {{ author_name }}">
+        {{ author_name|first|upper }}
+      </a>
+      <div class="campus-chat-message-card">
+        <header>
+          <a href="{% url 'ads:user_profile' message.author.username %}">{{ author_name }}</a>
+          {% if message.kind == 'wanted' %}<span class="campus-chat-wanted">{% include "components/icon.html" with name="search" %} Ищу вещь</span>{% endif %}
+          <time datetime="{{ message.created_at|date:'c' }}">{{ message.created_at|date:"d M, H:i" }}</time>
+        </header>
+        {% if message.reply_to %}
+          <a class="campus-chat-quote"
+             href="{% url 'campus:chat' %}?around={{ message.reply_to_id }}{% if message.dormitory_id %}&amp;room={{ message.dormitory_id }}{% endif %}#campus-message-{{ message.reply_to_id }}"
+             data-campus-quote="{{ message.reply_to_id }}">
+            <strong>{{ message.reply_to.author.get_full_name|default:message.reply_to.author.username }}</strong>
+            <span>{{ message.reply_to.body|truncatechars:120 }}</span>
+          </a>
+        {% endif %}
+        <p>{{ message.body }}</p>
+        <a class="campus-chat-reply" href="{% url 'campus:chat' %}?reply={{ message.pk }}{% if message.dormitory_id %}&amp;room={{ message.dormitory_id }}{% endif %}#campus-compose"
+           data-campus-reply="{{ message.pk }}" data-campus-author="{{ author_name }}" data-campus-excerpt="{{ message.body|truncatechars:120 }}">Ответить</a>
+      </div>
+    </article>
+  {% endwith %}
+{% endfor %}

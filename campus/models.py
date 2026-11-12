@@ -9,6 +9,20 @@ from django.utils import timezone
 from django.urls import reverse
 
 
+class Dormitory(models.Model):
+    name = models.CharField("Общежитие", max_length=120, unique=True)
+    address = models.CharField("Адрес", max_length=200, blank=True)
+    is_active = models.BooleanField("Доступно для выбора", default=True)
+
+    class Meta:
+        ordering = ["id"]
+        verbose_name = "Общежитие"
+        verbose_name_plural = "Общежития"
+
+    def __str__(self):
+        return self.name
+
+
 class CampusPlace(models.Model):
     name = models.CharField("Место", max_length=120, unique=True)
     meeting_hint = models.CharField("Ориентир для встречи", max_length=200, blank=True)
@@ -47,6 +61,7 @@ class StudyRequest(models.Model):
     place = models.ForeignKey(
         CampusPlace, verbose_name="Удобное место", on_delete=models.PROTECT, null=True, blank=True
     )
+    place_note = models.CharField("Своё место или ориентир", max_length=150, blank=True)
     available_from = models.DateTimeField("Удобно встретиться с", null=True, blank=True)
     available_until = models.DateTimeField("До", null=True, blank=True)
     is_active = models.BooleanField("Поиск открыт", default=True)
@@ -76,6 +91,12 @@ class StudyRequest(models.Model):
 
     def get_absolute_url(self):
         return reverse("campus:request_detail", args=[self.pk])
+
+    @property
+    def meeting_place_label(self):
+        if self.place_id and self.place_note:
+            return f"{self.place.name}, {self.place_note}"
+        return self.place.name if self.place_id else self.place_note
 
     def __str__(self):
         return self.title
@@ -109,7 +130,10 @@ class Meeting(models.Model):
     study_request = models.ForeignKey(
         StudyRequest, null=True, blank=True, on_delete=models.SET_NULL
     )
-    place = models.ForeignKey(CampusPlace, on_delete=models.PROTECT, verbose_name="Место встречи")
+    place = models.ForeignKey(
+        CampusPlace, on_delete=models.PROTECT, verbose_name="Место из списка", null=True, blank=True
+    )
+    place_note = models.CharField("Место встречи", max_length=150, blank=True)
     starts_at = models.DateTimeField("Начало встречи")
     ends_at = models.DateTimeField("Конец интервала / срок брони")
     return_on = models.DateField("Вернуть до", null=True, blank=True)
@@ -123,6 +147,10 @@ class Meeting(models.Model):
         verbose_name = "Встреча и передача"
         verbose_name_plural = "Встречи и передачи"
         constraints = [
+            models.CheckConstraint(
+                condition=Q(place__isnull=False) | ~Q(place_note=""),
+                name="meeting_requires_place",
+            ),
             models.CheckConstraint(
                 condition=Q(ends_at__gt=F("starts_at")), name="meeting_time_order"
             ),
@@ -141,6 +169,10 @@ class Meeting(models.Model):
                 name="one_meeting_proposal_per_thread",
             ),
         ]
+
+    @property
+    def meeting_place_label(self):
+        return self.place_note or (self.place.name if self.place_id else "")
 
     @property
     def effective_status(self):
@@ -165,3 +197,23 @@ class Meeting(models.Model):
 
     def __str__(self):
         return f"{self.ad} · {self.status_label}"
+
+
+class CampusMessage(models.Model):
+    class Kind(models.TextChoices):
+        GENERAL = "general", "Сообщение"
+        WANTED = "wanted", "Ищу вещь"
+
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    dormitory = models.ForeignKey(Dormitory, verbose_name="Чат общежития", null=True, blank=True, on_delete=models.PROTECT, related_name="messages")
+    body = models.TextField("Сообщение", max_length=1000)
+    kind = models.CharField("Тип", max_length=10, choices=Kind.choices, default=Kind.GENERAL)
+    reply_to = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField("Отправлено", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Сообщение чата кампуса"
+        verbose_name_plural = "Сообщения чата кампуса"
+
+    def __str__(self):
+        return self.body[:70]

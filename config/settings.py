@@ -78,18 +78,16 @@ DATABASES = {
 AUTHENTICATION_BACKENDS = [
     "axes.backends.AxesStandaloneBackend",
     "django.contrib.auth.backends.ModelBackend",
+    "ads.authentication.RegistrationBackend",
 ]
 AXES_FAILURE_LIMIT = 8
 AXES_COOLOFF_TIME = timedelta(minutes=15)
 AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": f"django.contrib.auth.password_validation.{name}"}
-    for name in [
-        "UserAttributeSimilarityValidator",
-        "MinimumLengthValidator",
-        "CommonPasswordValidator",
-        "NumericPasswordValidator",
-    ]
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 6},
+    }
 ]
 LANGUAGE_CODE = "ru"
 TIME_ZONE = "Asia/Yakutsk"
@@ -116,6 +114,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_REDIRECT_URL = "ads:ad_list"
 LOGOUT_REDIRECT_URL = "ads:ad_list"
 LOGIN_URL = "login"
+# Registration works without email delivery until this feature is explicitly enabled.
+EMAIL_VERIFICATION_REQUIRED = os.getenv("EMAIL_VERIFICATION_REQUIRED", "false").lower() == "true"
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@localhost")
 EMAIL_HOST = os.getenv("EMAIL_HOST", "")

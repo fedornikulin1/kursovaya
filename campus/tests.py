@@ -266,12 +266,21 @@ class CampusTests(TestCase):
         self.api.force_authenticate(self.buyer)
         response = self.api.post(
             "/api/v1/campus/requests/",
-            {"title": "Нужно", "subject": "Базы данных", "author": self.seller.pk, "course": 2},
+            {
+                "title": "Нужно",
+                "subject": "Базы данных",
+                "author": self.seller.pk,
+                "course": 2,
+                "place_note": "У входа в корпус ИМИ",
+            },
             format="json",
         )
         self.assertEqual(response.status_code, 201, response.data)
         need = StudyRequest.objects.get(pk=response.data["id"])
         self.assertEqual(need.author_id, self.buyer.pk)
+        self.assertIsNone(need.place_id)
+        self.assertEqual(need.meeting_place_label, "У входа в корпус ИМИ")
+        self.assertContains(self.client.get(need.get_absolute_url()), need.meeting_place_label)
         self.assertEqual(len(self.api.get(f"/api/v1/campus/requests/{need.pk}/matches/").data), 1)
         self.assertEqual(
             self.api.patch(
@@ -343,11 +352,23 @@ class CampusTests(TestCase):
         response = self.client.post(
             f"/campus/conversations/{self.thread.pk}/meeting/",
             {
-                "place": self.place.pk,
-                "starts_at": self.end.isoformat(),
-                "ends_at": self.start.isoformat(),
+                "place_note": "У входа в библиотеку",
+                "starts_at": (timezone.now() - timedelta(hours=1)).isoformat(),
             },
         )
         self.assertEqual(response.status_code, 400)
         self.assertContains(response, 'class="campus-meeting" open', status_code=400)
         self.assertContains(response, "Выберите будущую встречу", status_code=400)
+
+    def test_web_meeting_saves_typed_place_and_only_requires_start_time(self):
+        self.client.force_login(self.buyer)
+        response = self.client.post(
+            f"/campus/conversations/{self.thread.pk}/meeting/",
+            {"place_note": "У входа в библиотеку", "starts_at": self.start.isoformat()},
+        )
+        self.assertRedirects(response, f"/messages/{self.thread.pk}/")
+        meeting = Meeting.objects.get(conversation=self.thread)
+        self.assertIsNone(meeting.place)
+        self.assertEqual(meeting.meeting_place_label, "У входа в библиотеку")
+        self.assertEqual(meeting.ends_at - meeting.starts_at, timedelta(hours=1))
+        self.assertEqual(self.act(meeting, self.seller, "confirm").status, Meeting.Status.CONFIRMED)

@@ -97,6 +97,7 @@ for (const form of document.querySelectorAll("[data-favorite]")) {
       if (!response.ok || response.redirected) throw new Error("request");
       const data = await response.json();
       button.classList.toggle("is-active", data.is_favorite);
+      button.classList.toggle("favorite-pulse", data.is_favorite);
       button.setAttribute("aria-pressed", String(data.is_favorite));
       const label = form.querySelector("[data-favorite-label]");
       if (label)
@@ -120,11 +121,6 @@ for (const form of document.querySelectorAll("[data-favorite]")) {
 }
 for (const select of document.querySelectorAll("[data-autosubmit]"))
   select.addEventListener("change", () => select.form.requestSubmit());
-for (const button of document.querySelectorAll("[data-photo]"))
-  button.addEventListener("click", () => {
-    const photo = document.getElementById("main-photo");
-    if (photo) photo.src = button.dataset.photo;
-  });
 const filterPanel = document.querySelector(".filter-panel");
 if (filterPanel && window.matchMedia("(max-width: 700px)").matches)
   filterPanel.open = false;

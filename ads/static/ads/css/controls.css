@@ -1,0 +1,147 @@
+/* Shared select and calendar language for catalog, exchange and ad forms. */
+main .custom-select { width: 100%; }
+main .custom-select-trigger {
+  min-height: 48px;
+  padding: 11px 14px;
+  background: #fff;
+  border-color: #dbe4f1;
+  color: #263956;
+  font: inherit;
+  font-size: 13px;
+}
+.custom-select-list {
+  max-height: min(300px, 48vh);
+  box-shadow: 0 20px 45px #152c5926;
+}
+.custom-select-option { padding: 11px 13px; font-size: 13px; color: #50637f; }
+.custom-select-option[aria-selected="true"] { color: #2557e0; }
+.filter-form .custom-select-trigger { min-height: 45px; }
+.sort-form .custom-select { width: 180px; }
+.sort-form .custom-select-trigger { min-height: 40px; font-size: 11px; }
+.study-search .custom-select { width: 100%; }
+.study-search .custom-select-trigger { background: #f9fafc; min-height: 47px; }
+.study-search .custom-select-list { z-index: 40; }
+.study-search label:has(.custom-select.is-open) { z-index: 40; }
+
+main input.campus-calendar-display {
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='none' stroke='%23879ab9' stroke-width='1.7' viewBox='0 0 24 24'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M7 2v6M17 2v6M3 10h18'/%3E%3C/svg%3E") no-repeat right 15px center;
+  padding-right: 42px;
+  cursor: pointer;
+}
+.flatpickr-calendar {
+  border: 1px solid #dbe4f1;
+  border-radius: 16px;
+  box-shadow: 0 22px 55px #152c592c;
+  font-family: inherit;
+  overflow: hidden;
+}
+.flatpickr-calendar:before,
+.flatpickr-calendar:after { display: none; }
+.flatpickr-months { background: #f6f8fd; padding: 8px 6px 4px; }
+.flatpickr-months .flatpickr-month { background: transparent; color: #1d2d48; fill: #1d2d48; }
+.flatpickr-months .flatpickr-prev-month,
+.flatpickr-months .flatpickr-next-month { top: 8px; }
+.flatpickr-current-month { font-weight: 700; }
+.flatpickr-weekdays { background: #f6f8fd; }
+span.flatpickr-weekday { background: transparent; color: #8797b0; font-weight: 650; }
+.flatpickr-day { border-radius: 10px; color: #253650; }
+.flatpickr-day:hover,
+.flatpickr-day:focus { background: #eaf0ff; border-color: #eaf0ff; }
+.flatpickr-day.selected,
+.flatpickr-day.selected:hover,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange { background: #2557e0; border-color: #2557e0; color: #fff; }
+.flatpickr-day.today:not(.selected) { border-color: #91aaf4; color: #2557e0; }
+.flatpickr-time { border-top: 1px solid #edf1f7; }
+.flatpickr-time input:hover,
+.flatpickr-time input:focus { background: #f3f6fd; }
+
+/* Meeting details float above the conversation instead of shrinking its history. */
+.messenger .campus-meeting { position: relative; z-index: 12; background: #f7f9fd; }
+.messenger .campus-meeting[open] { background: #fff; }
+.messenger .campus-meeting[open] > summary { color: #2557e0; }
+.messenger .campus-meeting[open] .campus-meeting-content {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 16px;
+  width: min(520px, calc(100% - 32px));
+  max-height: min(560px, calc(100dvh - 390px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #dce5f3;
+  border-radius: 18px;
+  box-shadow: 0 22px 60px #14295338;
+  scrollbar-width: thin;
+}
+.messenger .campus-meeting[open] ~ .messenger-history { overflow: hidden; }
+.meeting-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 15px;
+}
+.meeting-panel-heading small {
+  display: block;
+  color: #7e90ad;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  margin-bottom: 5px;
+}
+.meeting-panel-heading h3 { color: #1d2d48; font-size: 20px; line-height: 1.25; }
+.meeting-panel-heading button {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e0e8f3;
+  border-radius: 9px;
+  color: #6f819d;
+  background: #f7f9fd;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+}
+.meeting-panel-heading button:hover { background: #eaf0ff; color: #2557e0; }
+.messenger .meeting-proposal {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 12px;
+  padding: 0;
+}
+.messenger .meeting-proposal .meeting-note,
+.messenger .meeting-proposal .form-errors { grid-column: 1 / -1; }
+.messenger .meeting-proposal .meeting-note { margin: 0 0 8px; line-height: 1.55; }
+.messenger .meeting-proposal .form-field { min-width: 0; margin-bottom: 8px; }
+.messenger .meeting-proposal .form-field label { color: #4b5d78; }
+.messenger .meeting-proposal .btn { grid-column: 1 / -1; justify-self: start; margin-top: 5px; }
+.messenger .meeting-proposal input.campus-calendar-display { padding-right: 42px; }
+.messenger .meeting-proposal .custom-select-trigger { min-height: 44px; }
+.messenger .meeting-proposal .custom-select-list { z-index: 40; }
+@media (max-width: 700px) {
+  .messenger .campus-meeting[open] .campus-meeting-content {
+    right: 10px;
+    width: calc(100% - 20px);
+    max-height: calc(100dvh - 320px);
+    padding: 18px;
+  }
+  .messenger .meeting-proposal { grid-template-columns: 1fr; }
+  .messenger .meeting-proposal .meeting-note,
+  .messenger .meeting-proposal .form-errors,
+  .messenger .meeting-proposal .btn { grid-column: 1; }
+}
+
+@media (min-width: 1280px) {
+  .catalog-layout .listing-grid,
+  .study-offer-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 17px; }
+  .catalog-layout .listing-visual,
+  .study-offer-grid .listing-visual { aspect-ratio: 1.48; }
+  .catalog-layout .listing-body,
+  .study-offer-grid .listing-body { padding: 13px; }
+  .catalog-layout .listing-price,
+  .study-offer-grid .listing-price { font-size: 18px; }
+}

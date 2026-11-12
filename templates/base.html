@@ -11,24 +11,31 @@
     <title>{% block title %}ДоскаСВФУ — свои рядом{% endblock %}</title>
     <script src="{% static 'ads/js/boot.js' %}?v=3"></script>
     <link rel="stylesheet" href="{% static 'ads/css/tailwind.css' %}">
-    <link rel="stylesheet" href="{% static 'ads/css/app.css' %}?v=20261030-r2">
-    <script defer src="{% static 'ads/js/app.js' %}?v=5"></script>
-    <link rel="stylesheet" href="{% static 'ads/css/refinements.css' %}?v=3">
-    <script defer src="{% static 'ads/js/selects.js' %}?v=3"></script>
-    <link rel="stylesheet" href="{% static 'ads/css/conversations.css' %}?v=3">
-    <script defer src="{% static 'ads/js/messenger.js' %}?v=3"></script>
-    <script defer src="{% static 'ads/js/detail.js' %}?v=5"></script>
-    <link rel="stylesheet" href="{% static 'ads/css/iteration.css' %}?v=5">
-    <script defer src="{% static 'ads/js/photo-editor.js' %}?v=7"></script>
-    <script defer src="{% static 'ads/js/interface.js' %}?v=4"></script>
-    <link rel="stylesheet" href="{% static 'ads/css/help.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'ads/css/app.css' %}?v=20261112-r4">
+    <script defer src="{% static 'ads/js/app.js' %}?v=7"></script>
+    <link rel="stylesheet" href="{% static 'ads/css/refinements.css' %}?v=5">
+    <script defer src="{% static 'ads/js/selects.js' %}?v=9"></script>
+    <link rel="stylesheet" href="{% static 'ads/css/conversations.css' %}?v=4">
+    <script defer src="{% static 'ads/js/messenger.js' %}?v=4"></script>
+    <link rel="stylesheet" href="{% static 'ads/css/iteration.css' %}?v=8">
+    <script defer src="{% static 'ads/js/photo-editor.js' %}?v=8"></script>
+    <script defer src="{% static 'ads/js/interface.js' %}?v=6"></script>
+    <link rel="stylesheet" href="{% static 'ads/css/help.css' %}?v=4">
     <script defer src="{% static 'ads/js/help.js' %}?v=1"></script>
-    <link rel="stylesheet" href="{% static 'ads/css/campus.css' %}?v=1">
-    <script defer src="{% static 'ads/js/campus.js' %}?v=1"></script>
-    <link rel="stylesheet" href="{% static 'ads/css/micro.css' %}?v=1">
+    <link rel="stylesheet" href="{% static 'ads/css/campus.css' %}?v=2">
+    <script defer src="{% static 'ads/js/campus.js' %}?v=2"></script>
+    <link rel="stylesheet" href="{% static 'ads/css/micro.css' %}?v=2">
     <script defer src="{% static 'ads/js/micro.js' %}?v=1"></script>
-    <link rel="stylesheet" href="{% static 'ads/css/hero-showcase.css' %}?v=1">
-    <script defer src="{% static 'ads/js/hero-showcase.js' %}?v=1"></script>
+    <link rel="stylesheet" href="{% static 'ads/css/hero-showcase.css' %}?v=13">
+    <script defer src="{% static 'ads/js/hero-showcase.js' %}?v=8"></script>
+    <link rel="stylesheet" href="{% static 'ads/vendor/flatpickr/flatpickr.min.css' %}">
+    <link rel="stylesheet" href="{% static 'ads/css/controls.css' %}?v=5">
+    <link rel="stylesheet" href="{% static 'ads/css/header-navigation.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'ads/css/profile.css' %}?v=1">
+    <script defer src="{% static 'ads/vendor/flatpickr/flatpickr.min.js' %}"></script>
+    <script defer src="{% static 'ads/vendor/flatpickr/ru.js' %}"></script>
+    <script defer src="{% static 'ads/js/calendar.js' %}?v=2"></script>
+    {% block extra_head %}{% endblock %}
   </head>
   <body class="{% if reduce_motion %}reduce-motion {% endif %}{% block body_class %}{% endblock %}">
     <div class="page-loader" role="status" aria-label="Загружаем страницу">
@@ -52,40 +59,31 @@
           <span>доска<span class="brand-sub">СВФУ · свои рядом</span>
           </span>
         </a>
-        <nav class="desktop-nav" aria-label="Основная навигация">
-          <a href="{% url 'campus:exchange' %}" aria-label="Учебный обмен" class="{% if request.resolver_match.app_name == 'campus' %}selected{% endif %}">{% include "components/icon.html" with name="book" %}<span>Учебный обмен</span></a>
-          <a href="{% url 'ads:my_ads' %}" aria-label="Мои объявления" class="{% if request.resolver_match.url_name == 'my_ads' %}selected{% endif %}">
-            {% include "components/icon.html" with name="document" %}<span>Мои объявления</span>
-          </a>
-          <a href="{% url 'ads:favorite_list' %}" aria-label="Избранное">
-            {% include "components/icon.html" with name="heart" %}
-            <span>Избранное</span>
-          </a>
-          <a href="{% url 'ads:inbox' %}" aria-label="Сообщения">
-            {% include "components/icon.html" with name="chat" %}
-            <span>Сообщения</span>
-            {% if unread_messages %}
-              <span class="notification-count">{{ unread_messages }}</span>
-            {% endif %}
-          </a>
-          <a href="{% url 'support:help' %}" aria-label="Помощь" class="{% if request.resolver_match.app_name == 'support' %}selected{% endif %}">
-            {% include "components/icon.html" with name="help" %}<span>Помощь</span>
-            {% if unread_support_answers %}<span class="notification-count">{{ unread_support_answers }}</span>{% endif %}
-          </a>
-        </nav>
+        {% include "components/header_navigation.html" %}
         <div class="header-actions">
+          <a class="mobile-help-link campus-chat-nav-icon" href="{% url 'campus:chat' %}" aria-label="Чат кампуса"
+             {% if request.resolver_match.url_name == 'chat' %}aria-current="page"{% endif %}>{% include "components/icon.html" with name="community" %}</a>
           <a class="mobile-help-link" href="{% url 'support:help' %}" aria-label="Помощь">{% include "components/icon.html" with name="help" %}{% if unread_support_answers %}<span class="help-dot"></span>{% endif %}</a>
           <a href="{% url 'ads:ad_create' %}" class="btn btn-primary btn-publish" aria-label="Разместить объявление">
             {% include "components/icon.html" with name="plus" %}
-            <span>Разместить объявление</span>
+            <span class="header-publish-label">Разместить объявление</span>
+            <span class="header-publish-arrow" aria-hidden="true">↗</span>
           </a>
           {% if user.is_authenticated %}
             <details class="account-menu" data-account-menu>
-              <summary class="avatar avatar-small" aria-label="Меню пользователя">{{ user.first_name|default:user.username|first|upper }}</summary>
+              <summary class="avatar avatar-small" aria-label="Меню пользователя">
+                {% include "components/profile_avatar.html" with portrait=account_profile person=user only %}
+              </summary>
               <div class="account-popover">
-                <div class="account-popover-heading"><strong>{{ user.get_full_name|default:user.username }}</strong><small>@{{ user.username }}</small></div>
+                <div class="account-popover-heading">
+                  <a class="account-popover-identity" href="{% url 'ads:user_profile' user.username %}" aria-label="Открыть мой профиль">
+                    <span class="avatar avatar-small">
+                      {% include "components/profile_avatar.html" with portrait=account_profile person=user only %}
+                    </span>
+                    <span><strong>{{ user.get_full_name|default:user.username }}</strong><small>@{{ user.username }}</small></span>
+                  </a>
+                </div>
                 <a href="{% url 'ads:my_ads' %}">{% include "components/icon.html" with name="document" %} Личный кабинет</a>
-                <a href="{% url 'campus:exchange' %}?tab=mine">{% include "components/icon.html" with name="book" %} Мои запросы и встречи</a>
                 <a href="{% url 'ads:user_profile' user.username %}">{% include "components/icon.html" with name="user" %} Мой профиль</a>
                 <a href="{% url 'ads:edit_profile' %}">{% include "components/icon.html" with name="pencil" %} Редактировать профиль</a>
                 <a href="{% url 'ads:settings' %}">{% include "components/icon.html" with name="tools" %} Настройки</a>
@@ -100,6 +98,7 @@
         </div>
       </div>
     </header>
+    {% block page_widgets %}{% endblock %}
     <main id="main" class="shell main-content">
       {% if messages %}
         <div class="flash-stack" aria-live="polite">
@@ -115,7 +114,7 @@
         <div class="footer-about"><a href="{% url 'ads:ad_list' %}" class="footer-brand">доска<span>СВФУ</span></a><p>Вещи, знания и хорошие соседи.<br>Всё начинается с людей рядом.</p><span class="footer-campus-label">Якутск · сообщество кампуса</span></div>
         <div><h3>На доске</h3><a href="{% url 'ads:ad_list' %}">Найти объявление</a><a href="{% url 'ads:ad_create' %}">Разместить своё</a><a href="{% url 'ads:favorite_list' %}">Избранное</a><a href="{% url 'ads:my_ads' %}">Личный кабинет</a></div>
         <div><h3>О проекте</h3><a href="{% url 'ads:information' 'about' %}">Как устроена Доска</a><a href="{% url 'ads:information' 'rules' %}">Правила размещения</a><a href="{% url 'ads:information' 'safety' %}">Безопасные встречи</a></div>
-        <div><h3>Мы на связи</h3><a href="{% url 'support:help' %}">Центр помощи</a><a href="{% url 'support:create' %}">Задать вопрос</a><a href="{% url 'support:tickets' %}">Мои обращения</a><a href="{% url 'ads:information' 'contacts' %}">Контакты проекта</a>{% if user.is_staff %}<a href="{% url 'admin:index' %}">Управление ↗</a>{% endif %}</div>
+        <div><h3>Мы на связи</h3><a href="{% url 'campus:chat' %}">Чат кампуса</a><a href="{% url 'support:help' %}">Центр помощи</a><a href="{% url 'support:create' %}">Задать вопрос</a><a href="{% url 'support:tickets' %}">Мои обращения</a><a href="{% url 'ads:information' 'contacts' %}">Контакты проекта</a>{% if user.is_staff %}<a href="{% url 'admin:index' %}">Управление ↗</a>{% endif %}</div>
       </div>
       <div class="shell campus-footer-bottom"><span>© {% now "Y" %} Доска · учебный проект</span><span>Самостоятельный проект для университетского сообщества</span><a href="{% url 'ads:information' 'about' %}">О демонстрационной версии ↗</a></div>
     </footer>
@@ -124,9 +123,9 @@
         {% include "components/icon.html" with name="grid" %}
         <span>Каталог</span>
       </a>
-      <a href="{% url 'campus:exchange' %}">
+      <a href="{% url 'ads:ad_list' %}?food=1">
         {% include "components/icon.html" with name="book" %}
-        <span>Обмен</span>
+        <span>Продукты</span>
       </a>
       <a href="{% url 'ads:favorite_list' %}">
         {% include "components/icon.html" with name="heart" %}
@@ -149,5 +148,9 @@
         <span>Профиль</span>
       </a>
     </nav>
+    <a href="{% if request.resolver_match.app_name == 'support' and request.resolver_match.url_name == 'create' %}#main{% else %}{% url 'support:create' %}{% endif %}"
+       class="support-launcher" aria-label="Написать в поддержку" title="Поддержка">
+      {% include "components/icon.html" with name="help" %}
+    </a>
   </body>
 </html>

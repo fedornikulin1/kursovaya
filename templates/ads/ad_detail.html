@@ -1,26 +1,19 @@
 {% extends "base.html" %}
+{% load static %}
 {% block body_class %}detail-page{% endblock %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'ads/css/ad-detail.css' %}?v=1">
+  <script defer src="{% static 'ads/js/detail.js' %}?v=6"></script>
+{% endblock %}
 {% block title %}
   {{ ad.title }} — ДоскаСВФУ{% endblock %}
 {% block content %}
-  <nav class="breadcrumbs">
-    <a href="{% url 'ads:ad_list' %}">Объявления</a>
-    <span>/</span>
-    <a href="{% url 'ads:ad_list' %}?category={{ ad.category_id }}">{{ ad.category.name }}</a>
-    <span>/ {{ ad.title|truncatechars:45 }}</span>
-  </nav>
-  <div class="detail-heading">
-    <div>
-      <div class="listing-topline">
+  <div class="detail-layout ad-detail-layout">
+    <section class="ad-gallery" aria-label="Фотографии объявления">
+      <div class="ad-gallery-top">
+        <a href="{% url 'ads:ad_list' %}{% if ad.category.name == 'Продукты' %}?food=1{% endif %}">{% include "components/icon.html" with name="chevron" %} К объявлениям</a>
         <span class="badge">{{ ad.get_kind_display }}</span>
-        <span class="muted">{{ ad.created_at|date:'d M Y' }} · № {{ ad.pk }}</span>
       </div>
-      <h1>{{ ad.title }}</h1>
-      <p class="listing-location">{% include "components/icon.html" with name="pin" %} {{ ad.location }}</p>
-    </div>
-  </div>
-  <div class="detail-layout">
-    <section>
       <div class="detail-photo">
         {% if ad.cover %}
           <img id="main-photo"
@@ -28,60 +21,47 @@
                alt="{{ ad.title }}"
                width="1000"
                height="750">
-          <button class="photo-expand" type="button" data-expand-photo>Рассмотреть фото ↗</button>
+          <div class="ad-gallery-footer">
+            <span class="ad-photo-count" data-main-photo-count hidden></span>
+            <button class="photo-expand" type="button" data-expand-photo>Рассмотреть фото ↗</button>
+          </div>
         {% else %}
-          <div class="photo-placeholder">
-            {% include "components/icon.html" with name=ad.category.icon %}
+          <div class="photo-placeholder{% if ad.category.name == 'Продукты' %} photo-placeholder-food{% endif %}">
+            {% if ad.category.name == 'Продукты' %}{% include "components/icon.html" with name="bag" %}{% else %}{% include "components/icon.html" with name=ad.category.icon %}{% endif %}
             <span>Фотография не добавлена</span>
           </div>
         {% endif %}
       </div>
-      {% if ad.images.all %}
-        <div class="photo-thumbnails">
+      {% if ad.images.all and ad.image or ad.images.all|length > 1 %}
+        <div class="photo-thumbnails" role="group" aria-label="Выбрать фото">
           {% if ad.image %}
             <button type="button"
                     data-photo="{{ ad.image.url }}"
-                    aria-label="Показать обложку">
-              <img src="{{ ad.image.url }}" alt="Обложка">
+                    aria-label="Показать обложку" aria-pressed="true">
+              <img src="{{ ad.image.url }}" alt="">
             </button>
           {% endif %}
           {% for photo in ad.images.all %}
             <button type="button"
                     data-photo="{{ photo.image.url }}"
-                    aria-label="Показать фотографию {{ forloop.counter }}">
+                    aria-label="Показать фотографию {% if ad.image %}{{ forloop.counter|add:1 }}{% else %}{{ forloop.counter }}{% endif %}"
+                    aria-pressed="{% if forloop.first and not ad.image %}true{% else %}false{% endif %}">
               <img src="{{ photo.image.url }}"
-                   alt="Фотография {{ forloop.counter }}"
+                   alt=""
                    loading="lazy">
             </button>
           {% endfor %}
         </div>
       {% endif %}
-      <div class="surface description-block">
-        <span class="eyebrow subtle">ПОДРОБНОСТИ</span>
-        <h2>Об этом объявлении</h2>
-        <div class="attributes">
-          <span>Категория<strong> {{ ad.category.name }}</strong>
-          </span>
-          <span>Состояние<strong> {{ ad.get_condition_display }}</strong>
-          </span>
-          <span>Место встречи<strong> {{ ad.location }}</strong>
-          </span>
-        </div>
-        <div class="prose">{{ ad.description|linebreaks }}</div>
-        {% if ad.is_study %}
-          <div class="study-detail-note"><span class="study-pill">Передай следующему курсу</span><h3>{{ ad.subject }}</h3><p>{% if ad.course %}{{ ad.course }} курс{% endif %}{% if ad.semester %} · {{ ad.semester }} семестр{% endif %}{% if ad.exchange_for %} · В обмен: {{ ad.exchange_for }}{% endif %}</p><a href="{% url 'campus:exchange' %}?q={{ ad.subject|urlencode }}">Другие предложения по предмету →</a></div>
-        {% endif %}
-        {% if ad.available_from %}<p class="field-help">Можно встретиться: {{ ad.available_from|date:"d.m.Y H:i" }} — {{ ad.available_until|date:"d.m.Y H:i" }} (Якутск).</p>{% endif %}
-        {% if ad.kind == "lend" %}<p class="study-detail-note">Временная передача: дату возврата согласуйте в карточке встречи в чате. Получение и возврат подтверждают оба участника.</p>{% endif %}
-      </div>
     </section>
     <aside class="detail-sidebar">
       <div class="surface detail-summary">
-        <span class="summary-eyebrow">{% if ad.price_type == "free" %}Хорошие вещи ищут новый дом{% elif ad.price_type == "negotiable" %}Договоритесь с автором о цене{% else %}Стоимость{% endif %}</span>
+        <a class="ad-detail-category" href="{% url 'ads:ad_list' %}?{% if ad.category.name == 'Продукты' %}food=1{% else %}category={{ ad.category_id }}{% endif %}">{{ ad.category.name }}</a>
+        <h1>{{ ad.title }}</h1>
         <p class="detail-price">{{ ad.price_label }}</p>
         <p class="listing-location">
           {% include "components/icon.html" with name="pin" %}
-          {{ ad.location }}
+          {% if ad.dormitory %}{{ ad.dormitory }}{% else %}{{ ad.location }}{% endif %}
         </p>
         {% if ad.status != "active" %}
           <div class="flash">{{ ad.get_status_display }}</div>
@@ -128,7 +108,7 @@
         <div class="seller-block">
           <a href="{% url 'ads:user_profile' ad.author.username %}"
              class="seller-person">
-            <span class="avatar">{{ ad.author.first_name|default:ad.author.username|first|upper }}</span>
+            <span class="avatar">{% include "components/profile_avatar.html" with portrait=seller_profile person=ad.author only %}</span>
             <span>
               <strong>{{ ad.author.get_full_name|default:ad.author.username }}</strong>
               <small>
@@ -151,10 +131,6 @@
         {% if user.is_authenticated and ad.contact_info %}
           <p class="muted contact-text">{{ ad.contact_info }}</p>
         {% endif %}
-      </div>
-      <div class="safety-note">
-        {% include "components/icon.html" with name="lock" %}
-        <p>Встречайтесь в кампусе. Проверяйте вещь до оплаты и не сообщайте коды из SMS.</p>
       </div>
       {% if can_contact and not existing_conversation %}
         <form class="contact-compose"
@@ -186,6 +162,28 @@
           <small>{% include "components/icon.html" with name="lock" %} Сообщение увидит только собеседник</small>
         </form>
       {% endif %}
+      <div class="surface ad-detail-specs">
+        <details class="ad-accordion" open>
+          <summary>Описание {% include "components/icon.html" with name="chevron" %}</summary>
+          <div class="prose">{{ ad.description|linebreaks }}</div>
+          {% if ad.is_study %}
+            <div class="study-detail-note"><h3>{{ ad.subject }}</h3><p>{% if ad.course %}{{ ad.course }} курс{% endif %}{% if ad.semester %} · {{ ad.semester }} семестр{% endif %}{% if ad.exchange_for %} · В обмен: {{ ad.exchange_for }}{% endif %}</p><a href="{% url 'campus:exchange' %}?q={{ ad.subject|urlencode }}">Другие предложения по предмету →</a></div>
+          {% endif %}
+          {% if ad.kind == "lend" %}<p class="study-detail-note">Согласуйте дату возврата в карточке встречи в чате. Получение и возврат подтверждают оба участника.</p>{% endif %}
+        </details>
+        <details class="ad-accordion">
+          <summary>Характеристики {% include "components/icon.html" with name="chevron" %}</summary>
+          <dl>
+            <div><dt>Состояние</dt><dd>{{ ad.get_condition_display }}</dd></div>
+            <div><dt>Опубликовано</dt><dd>{{ ad.created_at|date:'d M Y' }}</dd></div>
+            <div><dt>Номер объявления</dt><dd>№ {{ ad.pk }}</dd></div>
+          </dl>
+        </details>
+      </div>
+      <div class="safety-note">
+        {% include "components/icon.html" with name="lock" %}
+        <p>Встречайтесь в кампусе. Проверяйте вещь до оплаты и не сообщайте коды из SMS.</p>
+      </div>
     </aside>
   </div>
   {% if ad.cover %}

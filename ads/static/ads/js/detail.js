@@ -15,6 +15,7 @@
   const viewer = document.querySelector("[data-photo-viewer]");
   if (!viewer) return;
   const main = document.querySelector("#main-photo");
+  const mainCount = document.querySelector("[data-main-photo-count]");
   const thumbs = [...document.querySelectorAll("[data-photo]")];
   const photos = [
     ...new Set(
@@ -29,6 +30,7 @@
   let zoomed = false,
     drag = null;
   strip.hidden = photos.length < 2;
+  mainCount.hidden = photos.length < 2;
   viewer.classList.toggle("has-one-photo", photos.length === 1);
   function fitViewport() {
     if (!viewer.open || !large.complete || !large.naturalWidth) return;
@@ -102,18 +104,18 @@
     large.src = photos[index];
     main.src = photos[index];
     count.textContent = `${index + 1} / ${photos.length}`;
+    mainCount.textContent = count.textContent;
     strip.querySelectorAll("button").forEach((button, i) => {
       button.classList.toggle("is-selected", i === index);
       button.setAttribute("aria-pressed", String(i === index));
       if (viewer.open && i === index)
         button.scrollIntoView({ block: "nearest", inline: "center" });
     });
-    thumbs.forEach((button) =>
-      button.classList.toggle(
-        "is-selected",
-        button.dataset.photo === photos[index],
-      ),
-    );
+    thumbs.forEach((button) => {
+      const selected = button.dataset.photo === photos[index];
+      button.classList.toggle("is-selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
     viewer.querySelector("[data-gallery-prev]").hidden = photos.length < 2;
     viewer.querySelector("[data-gallery-next]").hidden = photos.length < 2;
     requestAnimationFrame(fitViewport);
@@ -129,7 +131,7 @@
     button.addEventListener("click", () => select(i));
     strip.append(button);
   });
-  thumbs.forEach((button, i) =>
+  thumbs.forEach((button) =>
     button.addEventListener("click", () =>
       select(photos.indexOf(button.dataset.photo)),
     ),

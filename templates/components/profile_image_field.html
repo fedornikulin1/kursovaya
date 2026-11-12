@@ -1,0 +1,7 @@
+<div class="profile-image-field" data-profile-image>
+  <div class="profile-image-preview {% if is_avatar %}avatar{% else %}profile-cover{% endif %}" aria-hidden="true">
+    {% if is_avatar %}<span data-image-fallback{% if field.initial %} hidden{% endif %}>{{ user.first_name|default:user.username|first|upper }}</span>{% endif %}
+    <img alt="" data-image-preview {% if field.initial %}src="{{ field.initial.url }}"{% else %}hidden{% endif %}>
+  </div>
+  {% include "components/field.html" %}
+</div>

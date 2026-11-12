@@ -43,6 +43,7 @@ class RequestSerializer(serializers.ModelSerializer):
             "mode",
             "description",
             "place",
+            "place_note",
             "available_from",
             "available_until",
             "is_active",
@@ -127,7 +128,7 @@ class MeetingSerializer(serializers.ModelSerializer):
     status_label = serializers.CharField(read_only=True)
     effective_status = serializers.CharField(read_only=True)
     is_overdue = serializers.BooleanField(read_only=True)
-    place_name = serializers.CharField(source="place.name", read_only=True)
+    place_name = serializers.CharField(source="meeting_place_label", read_only=True)
 
     class Meta:
         model = Meeting

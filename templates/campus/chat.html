@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Чат кампуса — ДоскаСВФУ{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'ads/css/campus-chat.css' %}?v=6">
+<script defer src="{% static 'ads/js/campus-chat.js' %}?v=4"></script>
+{% endblock %}
+{% block content %}
+<section class="campus-chat" aria-labelledby="campus-chat-title" data-campus-chat
+  {% if not chat_is_archive %}data-feed-url="{% url 'campus:chat_feed' %}?{% if chat_room %}room={{ chat_room.pk }}&amp;{% endif %}{% if chat_wanted %}view=wanted{% endif %}" data-latest-id="{{ chat_latest_id }}"{% endif %}>
+  <header class="campus-chat-heading">
+    <div>
+      <span class="campus-chat-eyebrow">ЛЮДИ РЯДОМ</span>
+      <h1 id="campus-chat-title">Чат кампуса</h1>
+      <p>Познакомься с соседями. Найди то, что ищешь.</p>
+    </div>
+    <a class="campus-chat-catalog-link" href="{% url 'ads:ad_list' %}">Открыть объявления {% include "components/icon.html" with name="arrow" %}</a>
+  </header>
+  <div class="campus-chat-layout">
+    <aside class="campus-chat-sidebar" aria-label="Чаты кампуса">
+      <div class="campus-chat-sidebar-heading">
+        <span class="campus-chat-sidebar-icon">{% include "components/icon.html" with name="community" %}</span>
+        <div><h2>Наше сообщество</h2><p>Общайся со своими</p></div>
+      </div>
+      <nav class="campus-chat-rooms" aria-label="Выберите чат">
+        <a class="campus-chat-room campus-chat-room-general{% if not chat_room %} is-active{% endif %}" href="{% url 'campus:chat' %}{% if chat_wanted %}?view=wanted{% endif %}" {% if not chat_room %}aria-current="page"{% endif %}>
+          <span class="campus-chat-room-icon">{% include "components/icon.html" with name="community" %}</span>
+          <span><strong>Общий чат</strong><small>Для всего кампуса</small></span>
+        </a>
+        <p class="campus-chat-room-label">Общежития</p>
+        <div class="campus-chat-room-list">
+          {% for dorm in chat_rooms %}
+          <a class="campus-chat-room{% if chat_room.pk == dorm.pk %} is-active{% endif %}" href="{% url 'campus:chat' %}?room={{ dorm.pk }}{% if chat_wanted %}&amp;view=wanted{% endif %}" {% if chat_room.pk == dorm.pk %}aria-current="page"{% endif %}>
+            <span class="campus-chat-room-icon">{% include "components/icon.html" with name="home" %}</span>
+            <strong>{{ dorm.name }}</strong>
+          </a>
+          {% endfor %}
+        </div>
+      </nav>
+      <p class="campus-chat-sidebar-note">Все чаты открыты зарегистрированным пользователям.</p>
+    </aside>
+    <div class="campus-chat-panel">
+      <div class="campus-chat-toolbar">
+        <div class="campus-chat-room-title">
+          <span class="campus-chat-room-icon">{% if chat_room %}{% include "components/icon.html" with name="home" %}{% else %}{% include "components/icon.html" with name="community" %}{% endif %}</span>
+          <div><h2>{% if chat_room %}{{ chat_room.name }}{% else %}Общий чат{% endif %}</h2><p>{% if chat_room %}Находки и разговоры с соседями{% else %}Вопросы, находки и помощь друг другу{% endif %}</p></div>
+        </div>
+        <nav class="campus-chat-tabs" aria-label="Сообщения в выбранном чате">
+          <a href="{% url 'campus:chat' %}{% if chat_room %}?room={{ chat_room.pk }}{% endif %}" {% if not chat_wanted %}class="is-active" aria-current="page"{% endif %}>Обсуждения</a>
+          <a href="{% url 'campus:chat' %}?{% if chat_room %}room={{ chat_room.pk }}&amp;{% endif %}view=wanted" {% if chat_wanted %}class="is-active" aria-current="page"{% endif %}>{% include "components/icon.html" with name="search" %} Что ищут</a>
+        </nav>
+      </div>
+      {% if chat_wanted %}<div class="campus-chat-view-note">Здесь собраны запросы «Ищу вещь» из этого чата. Есть нужная вещь? Ответьте автору.</div>{% endif %}
+      {% if chat_is_archive %}
+      <div class="campus-chat-archive-note">Предыдущие сообщения <a href="{% url 'campus:chat' %}?{% if chat_room %}room={{ chat_room.pk }}&amp;{% endif %}{% if chat_wanted %}view=wanted{% endif %}">К последним сообщениям ↑</a></div>
+      {% endif %}
+      <div class="campus-chat-feed" data-campus-feed tabindex="0" role="log" aria-label="Сообщения {% if chat_room %}{{ chat_room.name }}{% else %}общего чата{% endif %}">
+        {% if chat_older_id %}<a class="campus-chat-older" href="?before={{ chat_older_id }}{% if chat_room %}&amp;room={{ chat_room.pk }}{% endif %}{% if chat_wanted %}&amp;view=wanted{% endif %}">Более ранние сообщения</a>{% endif %}
+        <div class="campus-chat-messages" data-campus-messages>{% include "campus/chat_messages.html" %}</div>
+        {% if not chat_messages %}
+        <div class="campus-chat-empty" data-campus-empty>
+          <span class="campus-chat-emblem">{% if chat_wanted %}{% include "components/icon.html" with name="search" %}{% else %}{% include "components/icon.html" with name="community" %}{% endif %}</span>
+          <h3>{% if chat_is_archive %}Вы прочитали всё{% elif chat_wanted %}Пока никто ничего не ищет{% else %}Соседи, знакомимся?{% endif %}</h3>
+          {% if not chat_is_archive %}<p>{% if chat_wanted %}Нужна вещь? Выберите «Ищу вещь» и спросите у соседей.{% else %}Поздоровайтесь или спросите, есть ли у кого-то нужная вещь.{% endif %}</p>{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% if not chat_is_archive %}
+      <div class="campus-chat-compose" id="campus-compose">
+        <button type="button" class="campus-chat-jump" data-campus-jump hidden>К новым сообщениям ↓</button>
+        <form method="post" action="{% url 'campus:chat' %}{% if chat_room or chat_wanted %}?{% if chat_room %}room={{ chat_room.pk }}{% endif %}{% if chat_room and chat_wanted %}&amp;{% endif %}{% if chat_wanted %}view=wanted{% endif %}{% endif %}" data-campus-composer>
+          {% csrf_token %}
+          <div class="campus-chat-errors" data-campus-errors role="alert" {% if not chat_form.errors %}hidden{% endif %}>{{ chat_form.non_field_errors }}{{ chat_form.body.errors }}{{ chat_form.kind.errors }}{{ chat_form.reply_to.errors }}</div>
+          <fieldset class="campus-chat-modes">
+            <legend class="sr-only">Тип сообщения</legend>
+            <div class="campus-chat-mode-options">
+              <label><input type="radio" name="kind" value="general" {% if chat_form.kind.value != 'wanted' %}{% if not chat_wanted or chat_reply or chat_form.is_bound %}checked{% endif %}{% endif %}>{% include "components/icon.html" with name="chat" %} Сообщение</label>
+              <label><input type="radio" name="kind" value="wanted" {% if chat_form.kind.value == 'wanted' %}checked{% elif chat_wanted and not chat_reply and not chat_form.is_bound %}checked{% endif %}>{% include "components/icon.html" with name="search" %} Ищу вещь</label>
+            </div>
+          </fieldset>
+          <input type="hidden" name="reply_to" value="{{ chat_reply.pk|default:'' }}" data-campus-reply-input>
+          <div class="campus-chat-reply-preview" data-campus-reply-preview {% if not chat_reply %}hidden{% endif %}>
+            <div><strong data-campus-reply-name>{% if chat_reply %}Ответ для {{ chat_reply.author.get_full_name|default:chat_reply.author.username }}{% endif %}</strong><span data-campus-reply-text>{{ chat_reply.body|truncatechars:120 }}</span></div>
+            <a href="{% url 'campus:chat' %}{% if chat_room %}?room={{ chat_room.pk }}{% endif %}#campus-compose" data-campus-cancel-reply aria-label="Отменить ответ">{% include "components/icon.html" with name="close" %}</a>
+          </div>
+          <div class="campus-chat-input-row">
+            <label for="campus-chat-body" class="sr-only">Сообщение для чата кампуса</label>
+            <textarea id="campus-chat-body" name="body" rows="2" maxlength="1000" required placeholder="{% if chat_wanted %}Что ищете и к какому сроку?{% else %}Напишите своим…{% endif %}" data-campus-body>{{ chat_form.body.value|default_if_none:"" }}</textarea>
+            <button class="btn btn-primary campus-chat-send" type="submit" aria-label="Отправить сообщение">{% include "components/icon.html" with name="send" %}<span>Отправить</span></button>
+          </div>
+        </form>
+        <div class="campus-chat-caption"><span>Общаемся уважительно. Без мата и запрещённых товаров.</span><span data-campus-status role="status"></span><span data-campus-send-status role="status"></span></div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

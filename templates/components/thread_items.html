@@ -16,7 +16,7 @@
         <strong>{{ item.other_user.get_full_name|default:item.other_user.username }}</strong>
         <time>{{ item.last_activity|date:"d M" }}</time>
       </span>
-      <span class="conversation-subject">{{ item.ad.title }}</span>
+      <span class="conversation-subject">{% if item.ad_id %}{{ item.ad.title }}{% else %}Личная переписка{% endif %}</span>
       <span class="conversation-line conversation-preview">
         <span>{% if item.last_sender_id == user.pk %}Вы: {% endif %}{{ item.last_message_text|default:"Начните разговор" }}</span>
         {% if item.unread_count %}<b class="thread-unread">{{ item.unread_count }}</b>{% endif %}
@@ -25,7 +25,7 @@
   </a>
 {% empty %}
   <div class="thread-list-empty">
-    Здесь появятся ваши разговоры по объявлениям.<br><br>
+    Здесь появятся ваши личные разговоры.<br><br>
     <a class="btn btn-outline" href="{% url 'ads:ad_list' %}">Посмотреть объявления</a>
   </div>
 {% endfor %}

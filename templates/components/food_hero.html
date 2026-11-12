@@ -1,0 +1,45 @@
+<section class="food-intro" aria-labelledby="food-title">
+  <input class="sr-only food-ribbon-pause" type="checkbox" id="food-ribbon-pause">
+  <div class="food-intro-top">
+    <a class="food-back" href="{% url 'ads:ad_list' %}">{% include "components/icon.html" with name="arrow" %} Все объявления</a>
+    <label class="food-ribbon-toggle" for="food-ribbon-pause"><span aria-hidden="true">Ⅱ</span> Пауза ленты</label>
+    <h1 id="food-title">Перекус у соседей</h1>
+  </div>
+  <div class="food-ribbon" data-food-ribbon>
+    <svg class="food-ribbon-track" viewBox="0 0 5120 184" focusable="false" aria-hidden="true">
+      <defs>
+        <linearGradient id="food-satin" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#ffd465"/>
+          <stop offset="32%" stop-color="#fff0ad"/>
+          <stop offset="100%" stop-color="#ffdb70"/>
+        </linearGradient>
+        <path id="food-ribbon-baseline" d="M0 111C106 99 213 99 320 111S533 135 640 123S853 99 960 111S1173 123 1280 111"/>
+        <g id="food-ribbon-panel">
+          <path fill="url(#food-satin)" d="M0 30C106 18 213 18 320 30S533 54 640 42S853 18 960 30S1173 42 1280 30V146C1173 158 1067 158 960 146S747 146 640 158S427 158 320 146S106 134 0 146Z"/>
+          <path fill="none" stroke="#fff" stroke-opacity=".35" d="M0 35C106 23 213 23 320 35S533 59 640 47S853 23 960 35S1173 47 1280 35"/>
+          <text class="food-ribbon-copy" textLength="1200" lengthAdjust="spacing"><textPath href="#food-ribbon-baseline" startOffset="36">Чипсы ✦ Шоколад ✦ Напитки ✦</textPath></text>
+        </g>
+      </defs>
+      <use href="#food-ribbon-panel"/>
+      <use href="#food-ribbon-panel" x="1280"/>
+      <use href="#food-ribbon-panel" x="2560"/>
+      <use href="#food-ribbon-panel" x="3840"/>
+    </svg>
+    <button type="button" class="food-ribbon-interaction" aria-label="Прокрутить ленту" aria-keyshortcuts="ArrowLeft ArrowRight" hidden></button>
+  </div>
+  <div class="food-intro-bottom">
+    <p>Снеки и напитки от соседей по общежитию.<br> О встрече можно договориться в чате.</p>
+    <div class="food-intro-actions">
+      <span class="showcase-magnet" data-showcase-magnet>
+        {% if account_profile.dormitory.is_active and request.GET.dormitory != account_profile.dormitory_id|stringformat:'s' %}
+          <a class="btn showcase-primary" href="{% querystring dormitory=account_profile.dormitory_id page=None %}#catalog-results">Моё общежитие {% include "components/icon.html" with name="pin" %}</a>
+        {% else %}
+          <a class="btn showcase-primary" href="#catalog-results">К предложениям {% include "components/icon.html" with name="arrow" %}</a>
+        {% endif %}
+      </span>
+      <span class="showcase-magnet" data-showcase-magnet>
+        <a class="btn showcase-secondary" href="{% url 'ads:ad_create' %}?food=1">{% include "components/icon.html" with name="plus" %} Продать продукты</a>
+      </span>
+    </div>
+  </div>
+</section>

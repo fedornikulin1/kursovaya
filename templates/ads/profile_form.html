@@ -1,16 +1,31 @@
 {% extends "base.html" %}
+{% load static %}
+{% block title %}Редактировать профиль — ДоскаСВФУ{% endblock %}
+{% block extra_head %}
+  <script defer src="{% static 'ads/js/profile-editor.js' %}?v=1"></script>
+{% endblock %}
 {% block content %}
   <div class="page-intro">
     <span class="eyebrow subtle">ЛИЧНЫЙ КАБИНЕТ</span>
-    <h1>Настройки профиля</h1>
-    <p>Расскажи о себе и выбери удобный способ связи.</p>
+    <h1>Редактировать профиль</h1>
   </div>
 
   <div class="editor-layout">
-    <form method="post" class="surface form-surface">
+    <form method="post" enctype="multipart/form-data" class="surface form-surface">
       {% csrf_token %}
-      {% include "components/fields.html" %}
-      <button class="btn btn-primary" type="submit">Сохранить изменения</button>
+      <fieldset class="profile-appearance">
+        <legend>Оформление профиля</legend>
+        <p>JPEG, PNG или WebP. До 5 МБ на фото. Для обложки лучше подойдёт широкое фото.</p>
+        <div class="profile-image-grid">
+          {% include "components/profile_image_field.html" with field=form.avatar is_avatar=True %}
+          {% include "components/profile_image_field.html" with field=form.cover is_avatar=False %}
+        </div>
+      </fieldset>
+      {% include "components/fields.html" with fields=form.details_fields %}
+      <div class="profile-form-actions">
+        <button class="btn btn-primary" type="submit">Сохранить изменения</button>
+        <a href="{% url 'ads:user_profile' user.username %}" class="btn btn-quiet">К профилю</a>
+      </div>
     </form>
     <aside class="community-note">
       <h3>Контакты под твоим контролем</h3>

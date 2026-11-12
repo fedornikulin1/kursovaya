@@ -1,0 +1,11 @@
+<section class="saved-searches" aria-labelledby="saved-searches-title" data-saved-searches
+         data-restore-url="{% url 'ads:restore_saved_search' %}{% if saved_query %}?{{ saved_query }}{% endif %}">
+  <div data-saved-search-content>
+    {% include "ads/saved_search_content.html" %}
+  </div>
+  <div class="saved-search-undo" data-saved-search-undo hidden>
+    <p role="status" data-undo-status></p>
+    <button class="btn btn-outline" type="button" data-undo-button hidden>Отменить</button>
+    <span class="saved-search-fuse" aria-hidden="true"></span>
+  </div>
+</section>

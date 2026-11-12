@@ -1,35 +1,43 @@
 """HTML endpoints. Domain mutations delegate to services."""
 
 from django.contrib import messages
+from django.conf import settings
+from datetime import timedelta
+from smtplib import SMTPException
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core import signing
 from django.core.exceptions import ValidationError
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Case, Count, IntegerField, Q, Value, When
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.vary import vary_on_headers
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.views.decorators.http import require_POST, require_safe, require_http_methods
 from django.views.generic import ListView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from .filters import AdFilter
 from .forms import AdForm, MessageForm, ProfileForm, RegisterForm, ReviewForm, SettingsForm
-from .models import Ad, AdImage, Category, Favorite, Message, Response, Review
+from .models import Ad, AdImage, Category, Favorite, Message, Response, Review, SavedSearch
 from .selectors import catalogue, conversations, visible_ads, hero_picks
 from .services import (
     create_review,
+    direct_pair,
     mark_read,
     profile_for,
     save_ad,
     send_message,
     start_conversation,
+    start_direct_conversation,
 )
 
 User = get_user_model()
+SAVED_SEARCH_UNDO_SALT = "ads.saved-search-undo"
+SAVED_SEARCH_UNDO_SECONDS = 10
 
 
 def register(request):
@@ -37,10 +45,50 @@ def register(request):
         return redirect("ads:ad_list")
     form = RegisterForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(request, "Аккаунт создан. Теперь можно войти.")
-        return redirect("login")
+        try:
+            user = form.save()
+        except (OSError, SMTPException):
+            form.add_error(None, "Не удалось отправить письмо. Попробуйте позже.")
+        else:
+            if settings.EMAIL_VERIFICATION_REQUIRED:
+                request.session["pending_confirmation_user"] = user.pk
+                return redirect("ads:confirm_email")
+            request.session.pop("pending_confirmation_user", None)
+            messages.success(request, "Аккаунт создан. Войдите с вашим логином и паролем.")
+            return redirect("login")
     return render(request, "registration/register.html", {"form": form})
+
+
+@never_cache
+@require_http_methods(["GET", "POST"])
+def confirm_registration_email(request):
+    if not settings.EMAIL_VERIFICATION_REQUIRED:
+        request.session.pop("pending_confirmation_user", None)
+        messages.info(request, "Код из письма больше не нужен. Войдите с вашим логином и паролем.")
+        return redirect("login")
+    from .email_verification import confirm_email, send_confirmation
+    from .models import EmailConfirmation
+    user = get_object_or_404(User, pk=request.session.get("pending_confirmation_user"), is_active=False)
+    error = ""
+    if request.method == "POST":
+        if request.POST.get("action") == "resend":
+            challenge = EmailConfirmation.objects.filter(user=user).first()
+            if challenge and challenge.created_at > timezone.now() - timedelta(seconds=60):
+                error = "Повторно запросить код можно через минуту."
+            else:
+                try:
+                    send_confirmation(user)
+                    messages.success(request, "Новый код отправлен на почту.")
+                except (OSError, SMTPException):
+                    error = "Не удалось отправить письмо. Попробуйте позже."
+            return render(request, "registration/confirm_email.html", {"email": user.email, "error": error, "mail_is_console": settings.DEBUG and settings.EMAIL_BACKEND == "django.core.mail.backends.console.EmailBackend"})
+        code = request.POST.get("code", "").strip()
+        if len(code) == 6 and code.isascii() and code.isdigit() and confirm_email(user, code):
+            request.session.pop("pending_confirmation_user", None)
+            messages.success(request, "Почта подтверждена. Теперь можно войти.")
+            return redirect("login")
+        error = "Неверный или просроченный код. Доступно до пяти попыток."
+    return render(request, "registration/confirm_email.html", {"email": user.email, "error": error, "mail_is_console": settings.DEBUG and settings.EMAIL_BACKEND == "django.core.mail.backends.console.EmailBackend"})
 
 
 class AdListView(ListView):
@@ -49,23 +97,33 @@ class AdListView(ListView):
     paginate_by = 12
 
     def get_queryset(self):
+        queryset = catalogue(self.request.user).filter(status=Ad.Status.ACTIVE)
+        if self.request.GET.get("food") == "1":
+            queryset = queryset.filter(category__name="Продукты")
         self.filterset = AdFilter(
-            self.request.GET, queryset=catalogue(self.request.user).filter(status=Ad.Status.ACTIVE)
+            self.request.GET, queryset=queryset
         )
-        return self.filterset.qs
+        queryset = self.filterset.qs
+        if self.request.user.is_authenticated and not self.request.GET.get("ordering"):
+            dormitory_id = getattr(getattr(self.request.user, "profile", None), "dormitory_id", None)
+            if dormitory_id:
+                queryset = queryset.annotate(nearby=Case(When(dormitory_id=dormitory_id, then=Value(0)), default=Value(1), output_field=IntegerField())).order_by("nearby", "-created_at", "-pk")
+        return queryset
 
     def get_context_data(self, **kwargs):
+        from campus.models import Dormitory
         context = super().get_context_data(**kwargs)
         params = self.request.GET.copy()
         params.pop("page", None)
         context.update(
             filter=self.filterset,
+            food_mode=self.request.GET.get("food") == "1",
+            dormitories=Dormitory.objects.filter(is_active=True),
             querystring=params.urlencode(),
             categories=Category.objects.filter(is_active=True).annotate(
                 active_count=Count("ads", filter=Q(ads__status="active"))
             ),
             total_ads=Ad.objects.filter(status="active").count(),
-            hero_ads=hero_picks(self.request.user),
             active_filters_count=sum(
                 bool(self.request.GET.get(key))
                 for key in (
@@ -76,6 +134,7 @@ class AdListView(ListView):
                     "price_min",
                     "price_max",
                     "price_type",
+                    "dormitory",
                 )
             ),
             show_catalog_banner=not any(
@@ -89,10 +148,86 @@ class AdListView(ListView):
                     "price_max",
                     "price_type",
                     "page",
+                    "food",
+                    "dormitory",
                 )
             ),
         )
+        if self.request.user.is_authenticated:
+            context.update(saved_search_context(self.request.user, self.filterset.saved_query()))
         return context
+
+
+def saved_search_context(user, query):
+    searches = list(user.saved_searches.all())
+    return {
+        "saved_query": query,
+        "saved_searches": searches,
+        "is_saved_search": any(search.query_string == query for search in searches),
+    }
+
+
+def saved_search_fragment(request):
+    query = AdFilter(request.GET).saved_query()
+    return render_to_string(
+        "ads/saved_search_content.html", saved_search_context(request.user, query), request
+    )
+
+
+def _return_to_catalogue(query):
+    url = reverse("ads:ad_list")
+    if query:
+        url = f"{url}?{query}"
+    return redirect(f"{url}#catalog-results")
+
+
+@login_required
+@require_POST
+def save_search(request):
+    filters = AdFilter(request.GET)
+    query = filters.saved_query()
+    if not query:
+        messages.error(request, "Не удалось сохранить поиск. Проверьте параметры фильтров.")
+        return redirect("ads:ad_list")
+    SavedSearch.objects.get_or_create(
+        user=request.user, query_string=query, defaults={"label": filters.saved_label()}
+    )
+    return _return_to_catalogue(query)
+
+
+@login_required
+@require_POST
+def delete_saved_search(request, pk):
+    search = get_object_or_404(SavedSearch, pk=pk, user=request.user)
+    search.delete()
+    if request.headers.get("Accept") == "application/json":
+        undo_token = signing.dumps(
+            {"user": request.user.pk, "query": search.query_string, "label": search.label},
+            salt=SAVED_SEARCH_UNDO_SALT,
+        )
+        return JsonResponse({
+            "html": saved_search_fragment(request),
+            "undo_token": undo_token,
+            "undo_seconds": SAVED_SEARCH_UNDO_SECONDS,
+        })
+    return _return_to_catalogue(AdFilter(request.GET).saved_query())
+
+
+@login_required
+@require_POST
+def restore_saved_search(request):
+    token = request.POST.get("undo_token", "")
+    try:
+        # Allow a few extra seconds for the restore request to reach the server.
+        saved = signing.loads(token, salt=SAVED_SEARCH_UNDO_SALT, max_age=SAVED_SEARCH_UNDO_SECONDS + 5)
+    except signing.BadSignature:
+        return JsonResponse({"error": "Время на отмену истекло."}, status=400)
+    if saved["user"] != request.user.pk:
+        return JsonResponse({"error": "Этот поиск принадлежит другому аккаунту."}, status=403)
+    restored, _ = SavedSearch.objects.get_or_create(
+        user=request.user, query_string=saved["query"], defaults={"label": saved["label"]}
+    )
+    return JsonResponse({"html": saved_search_fragment(request), "restored_id": restored.pk})
 
 
 @require_safe
@@ -133,7 +268,12 @@ def ad_form(request, pk=None):
         if pk
         else Ad(author=request.user, is_study=request.GET.get("study") == "1")
     )
-    form = AdForm(request.POST or None, request.FILES or None, instance=ad)
+    initial = {}
+    if not pk:
+        initial["dormitory"] = getattr(getattr(request.user, "profile", None), "dormitory_id", None)
+        if request.GET.get("food") == "1":
+            initial["category"] = Category.objects.filter(name="Продукты", is_active=True).values_list("pk", flat=True).first()
+    form = AdForm(request.POST or None, request.FILES or None, instance=ad, initial=initial)
     if request.method == "POST" and form.is_valid():
         try:
             save_ad(
@@ -252,22 +392,20 @@ def inbox(request):
 def messenger_context(user, thread=None, form=None):
     from campus.views import meeting_context
 
-    threads = list(conversations(user))
+    threads = list(conversations(user, include_direct=True))
     for item in threads:
-        item.other_user = item.ad.author if item.user_id == user.pk else item.user
+        item.other_user = item.other_participant(user)
         item.last_activity = item.last_message_at or item.updated_at
     return {
         "threads": threads,
         "thread": thread,
         "thread_count": len(threads),
         "unread_thread_count": sum(item.unread_count > 0 for item in threads),
-        "other_user": (
-            (thread.ad.author if thread.user_id == user.pk else thread.user) if thread else None
-        ),
+        "other_user": thread.other_participant(user) if thread else None,
         "chat_messages": thread.messages.select_related("sender") if thread else [],
         "form": form if form is not None else MessageForm(),
         "display_timezone": timezone.get_current_timezone_name(),
-        **(meeting_context(user, thread) if thread else {}),
+        **(meeting_context(user, thread) if thread and thread.ad_id else {}),
     }
 
 
@@ -304,7 +442,7 @@ def inbox_sidebar(request):
 @vary_on_headers("X-Messenger-Request")
 @require_http_methods(["GET", "POST"])
 def conversation(request, pk):
-    thread = get_object_or_404(conversations(request.user), pk=pk)
+    thread = get_object_or_404(conversations(request.user, include_direct=True), pk=pk)
     form = MessageForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         send_message(conversation=thread, sender=request.user, text=form.cleaned_data["text"])
@@ -320,6 +458,33 @@ def conversation(request, pk):
 
 
 @login_required
+@never_cache
+@require_http_methods(["GET", "HEAD", "POST"])
+def profile_message(request, username):
+    recipient = get_object_or_404(
+        User.objects.exclude(pk=request.user.pk), username=username, is_active=True
+    )
+    posting = request.method == "POST"
+    form = MessageForm(request.POST if posting else None)
+    if posting:
+        if form.is_valid():
+            thread = start_direct_conversation(
+                user=request.user, recipient=recipient, text=form.cleaned_data["text"]
+            )
+            return redirect("ads:conversation", pk=thread.pk)
+    else:
+        thread = Response.objects.filter(ad=None, **direct_pair(request.user, recipient)).first()
+        if thread:
+            return redirect("ads:conversation", pk=thread.pk)
+    return render(
+        request,
+        "ads/profile_message.html",
+        {"recipient": recipient, "form": form},
+        status=400 if posting else 200,
+    )
+
+
+@login_required
 @require_POST
 def accept_response(request, pk):
     thread = get_object_or_404(Response, pk=pk, ad__author=request.user)
@@ -330,12 +495,22 @@ def accept_response(request, pk):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def edit_profile(request):
-    form = ProfileForm(request.POST or None, instance=profile_for(request.user))
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(request, "Профиль обновлён.")
-        return redirect("ads:user_profile", username=request.user.username)
+    profile = profile_for(request.user)
+    if request.method == "POST":
+        form = ProfileForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            try:
+                form.save()
+            except ValidationError as exc:
+                for field, errors in exc.message_dict.items():
+                    form.add_error(field, errors)
+            else:
+                messages.success(request, "Профиль обновлён.")
+                return redirect("ads:user_profile", username=request.user.username)
+    else:
+        form = ProfileForm(instance=profile)
     return render(request, "ads/profile_form.html", {"form": form})
 
 

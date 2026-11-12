@@ -255,11 +255,13 @@
     const controls = [
       ...form.querySelectorAll("input,textarea,select,button"),
     ].map((control) => [control, control.disabled]);
-    const submit = form.querySelector('button[type="submit"]'),
-      caption = submit.textContent;
+    const submit = form.querySelector("[data-ad-save]");
+    const label = submit.querySelector("[data-ad-save-label]");
+    const caption = label.textContent;
     saving = true;
     form.setAttribute("aria-busy", "true");
-    submit.textContent = "Сохраняем объявление…";
+    submit.dataset.state = "saving";
+    label.textContent = "Сохраняем объявление…";
     controls.forEach(([control]) => (control.disabled = true));
     let navigating = false;
     try {
@@ -282,6 +284,12 @@
       }
       const redirect = new URL(data.redirect_url, location.origin);
       if (redirect.origin !== location.origin) throw new Error("origin");
+      submit.dataset.state = "saved";
+      label.textContent = "Объявление сохранено";
+      if (!document.body.classList.contains("reduce-motion") &&
+          !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        await new Promise((resolve) => setTimeout(resolve, 350));
+      }
       navigating = true;
       location.assign(redirect.href);
     } catch (error) {
@@ -303,7 +311,8 @@
         controls.forEach(
           ([control, disabled]) => (control.disabled = disabled),
         );
-        submit.textContent = caption;
+        delete submit.dataset.state;
+        label.textContent = caption;
         form.removeAttribute("aria-busy");
         updateCount();
       }

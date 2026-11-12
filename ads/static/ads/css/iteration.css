@@ -164,32 +164,34 @@
   max-width: 94vw;
   height: fit-content;
   max-height: 92dvh;
-  border: 1px solid #ffffff1f;
+  border: 1px solid #dbe5f5;
   border-radius: 18px;
-  background: #131d2b;
-  color: white;
-  box-shadow: 0 30px 90px #0005;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 24px 74px #233a5d30;
 }
 .gallery-viewer::backdrop {
-  background: #0a1222de;
+  background: #dbe5f2b8;
   backdrop-filter: blur(8px);
 }
 .gallery-viewer button {
   position: static;
   inset: auto;
-  border: 1px solid #ffffff20;
+  border: 1px solid #dbe5f5;
   border-radius: 9px;
-  background: #ffffff0d;
-  color: #d4ddec;
+  background: #f5f8fd;
+  color: #29436d;
   padding: 8px 13px;
 }
+.gallery-viewer button:hover { background: #eaf1ff; color: #254cac; }
+.gallery-viewer button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .gallery-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 14px 20px;
   font-size: 12px;
-  color: #aab8d1;
+  color: #4b6285;
 }
 .gallery-toolbar button {
   font-size: 11px;
@@ -235,8 +237,8 @@
   border-radius: 8px;
 }
 .gallery-thumbs button.is-selected {
-  border-color: #88aaff;
-  background: #2557e05c;
+  border-color: var(--blue);
+  background: #eaf1ff;
 }
 .gallery-thumbs img {
   width: 54px;
@@ -281,6 +283,24 @@
 .account-popover-heading strong {
   font-size: 13px;
   display: block;
+}
+.account-popover-identity {
+  display: block;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  border-radius: 8px;
+  color: inherit;
+  transition: background 160ms ease;
+}
+.account-popover-identity:hover {
+  background: #f0f5ff;
+}
+.account-popover-identity:hover strong {
+  color: #2557e0;
+}
+.account-popover-identity:focus-visible {
+  outline: 2px solid #2557e0;
+  outline-offset: 3px;
 }
 .account-popover-heading small {
   color: #97a5ba;
@@ -728,7 +748,7 @@
   margin-top: 20px;
 }
 #catalog-results {
-  scroll-margin-top: 25px;
+  scroll-margin-top: 110px;
 }
 @keyframes cursor-blink {
   50% {
@@ -912,7 +932,7 @@
 }
 .gallery-image-viewport.is-zoomed {
   scrollbar-width: thin;
-  scrollbar-color: #526780 #182334;
+  scrollbar-color: #a4b8d8 #f3f6fb;
 }
 .gallery-image-viewport::-webkit-scrollbar {
   width: 8px;
@@ -920,10 +940,10 @@
 }
 .gallery-image-viewport::-webkit-scrollbar-track,
 .gallery-image-viewport::-webkit-scrollbar-corner {
-  background: #182334;
+  background: #f3f6fb;
 }
 .gallery-image-viewport::-webkit-scrollbar-thumb {
-  background: #526780;
+  background: #a4b8d8;
   border-radius: 8px;
 }
 .gallery-stage .gallery-image-viewport {

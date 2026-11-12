@@ -157,7 +157,6 @@ def meeting_context(user, thread, form=None):
         "active_meeting": active,
         "meeting_form": form if form is not None else MeetingForm(conversation=thread),
         "meeting_revision": revision,
-        "meeting_timezone": timezone.get_current_timezone_name(),
     }
 
 

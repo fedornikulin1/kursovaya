@@ -1,223 +1,109 @@
-/* Original progressive enhancement: photo deck, glyph reels and an SVG ribbon.
-   Inspired by public previews, without React Bits Pro source or dependencies. */
 (() => {
+  const media = matchMedia("(prefers-reduced-motion: reduce)");
+  const clamp = (value, limit) => Math.max(-limit, Math.min(limit, value));
+  const reduced = () => media.matches || document.body.classList.contains("reduce-motion");
+
+  function attachMagnets(container, enabled) {
+    const magnets = [...container.querySelectorAll("[data-showcase-magnet]")];
+    function reset(wrap) {
+      wrap.classList.remove("is-pulled");
+      wrap.style.removeProperty("--magnet-x");
+      wrap.style.removeProperty("--magnet-y");
+    }
+    for (const wrap of magnets) {
+      wrap.addEventListener("pointermove", (event) => {
+        if (!enabled() || event.pointerType !== "mouse") return;
+        const rect = wrap.getBoundingClientRect();
+        const x = clamp((event.clientX - rect.left - rect.width / 2) * 0.2, 7);
+        const y = clamp((event.clientY - rect.top - rect.height / 2) * 0.27, 5);
+        wrap.style.setProperty("--magnet-x", `${x}px`);
+        wrap.style.setProperty("--magnet-y", `${y}px`);
+        wrap.classList.add("is-pulled");
+      });
+      wrap.addEventListener("pointerleave", () => reset(wrap));
+    }
+    return () => magnets.forEach(reset);
+  }
+
+  const food = document.querySelector(".food-intro");
+  if (food) {
+    const reset = attachMagnets(food, () => !reduced() && !document.hidden);
+    media.addEventListener("change", reset);
+    document.addEventListener("visibilitychange", reset);
+  }
+
   const root = document.querySelector("[data-hero-showcase]");
   if (!root) return;
 
-  const media = matchMedia("(prefers-reduced-motion: reduce)");
   const toggle = root.querySelector("[data-showcase-toggle]");
-  const gallery = root.querySelector("[data-hero-gallery]");
-  const deck = root.querySelector("[data-hero-deck]");
-  const cards = [...root.querySelectorAll("[data-hero-card]")];
-  const dots = [...root.querySelectorAll("[data-hero-dot]")];
-  const count = root.querySelector("[data-hero-count]");
-  const progress = root.querySelector("[data-hero-progress]");
-  const ribbon = root.querySelector("[data-hero-ribbon]");
-  const lead = root.querySelector("[data-glyph-lead]");
-  const accent = root.querySelector("[data-glyph-lottery]");
+  const accent = root.querySelector("[data-hero-type]");
+  const jelly = root.querySelector("[data-showcase-jelly]");
+  const wordmark = jelly.querySelector(".showcase-wordmark");
   const phrases = ["у своих.", "для учёбы.", "для общаги."];
-  const glyphs = "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЭЮЯ";
-  const duration = 5500;
-  const glyphAnimations = new Set();
-  let index = 0;
   let phrase = 0;
+  let letters = phrases[0].length;
+  let deleting = true;
   let paused = false;
-  let hovering = false;
-  let focused = false;
-  let touching = false;
+  let inView = false;
   let suspended = false;
-  const initialBounds = root.getBoundingClientRect();
-  let inView = initialBounds.top < innerHeight && initialBounds.bottom > 0;
-  let glyphStarted = false;
-  let ribbonReady = false;
-  let ribbonStarted = false;
-  let glyphTimer;
-  let galleryTimer;
-  let galleryStarted = 0;
-  let remaining = duration;
-  let progressAnimation;
+  let typeTimer;
+  let drag;
+  let dragged = false;
+  let jiggle;
 
-  const reduced = () =>
-    media.matches || document.body.classList.contains("reduce-motion");
-  const running = () =>
-    !paused && !reduced() && inView && !document.hidden && !suspended;
+  const running = () => !paused && !reduced() && inView && !document.hidden && !suspended;
+  const resetMagnets = attachMagnets(root, running);
 
-  function settleGlyphs() {
-    glyphAnimations.forEach((animation) => animation.cancel());
-    glyphAnimations.clear();
-    lead.textContent = "Всё нужное —";
-    accent.textContent = phrases[phrase];
-  }
-
-  function spinGlyphs(element, value) {
-    element.replaceChildren();
-    [...value].forEach((letter, i) => {
-      const cell = document.createElement("span");
-      cell.className = "glyph-cell";
-      const measure = document.createElement("span");
-      measure.className = "glyph-measure";
-      measure.textContent = letter === " " ? "\u00a0" : letter;
-      const strip = document.createElement("span");
-      strip.className = "glyph-strip";
-      const rows = letter === " " ? 0 : 5 + (i % 3);
-      for (let row = 0; row <= rows; row++) {
-        const symbol = document.createElement("span");
-        symbol.className = "glyph-symbol";
-        symbol.textContent =
-          row === rows
-            ? measure.textContent
-            : glyphs[Math.floor(Math.random() * glyphs.length)];
-        strip.append(symbol);
-      }
-      cell.append(measure, strip);
-      element.append(cell);
-      if (!rows) return;
-      const animation = strip.animate(
-        [
-          { transform: "translateY(0)" },
-          { transform: `translateY(-${(rows * 100) / (rows + 1)}%)` },
-        ],
-        {
-          duration: 700 + (i % 3) * 90,
-          delay: i * 38,
-          easing: "cubic-bezier(.15,.8,.25,1)",
-          fill: "both",
-        },
-      );
-      glyphAnimations.add(animation);
-      animation.finished.then(
-        () => {
-          glyphAnimations.delete(animation);
-          if (!strip.isConnected) return;
-          strip.replaceChildren(strip.lastElementChild);
-          cell.classList.add("is-settled");
-          animation.cancel();
-        },
-        () => glyphAnimations.delete(animation),
-      );
-    });
-  }
-
-  function syncGlyphs() {
+  function syncTyping() {
+    clearTimeout(typeTimer);
     if (!running()) {
-      clearTimeout(glyphTimer);
-      glyphTimer = undefined;
-      settleGlyphs();
+      accent.textContent = phrases[phrase];
+      letters = phrases[phrase].length;
+      deleting = true;
       return;
     }
-    if (!glyphStarted) {
-      glyphStarted = true;
-      spinGlyphs(lead, "Всё нужное —");
-      spinGlyphs(accent, phrases[phrase]);
-    }
-    if (!glyphTimer) {
-      glyphTimer = setTimeout(() => {
-        glyphTimer = undefined;
-        phrase = (phrase + 1) % phrases.length;
-        spinGlyphs(accent, phrases[phrase]);
-        syncGlyphs();
-      }, 6500);
-    }
-  }
-
-  function stopGalleryClock() {
-    if (galleryTimer !== undefined) {
-      clearTimeout(galleryTimer);
-      galleryTimer = undefined;
-      remaining = Math.max(0, remaining - (performance.now() - galleryStarted));
-    }
-    progressAnimation?.pause();
-  }
-
-  function resetGalleryClock() {
-    clearTimeout(galleryTimer);
-    galleryTimer = undefined;
-    remaining = duration;
-    progressAnimation?.cancel();
-    progressAnimation = progress?.animate(
-      [{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }],
-      { duration, fill: "both" },
-    );
-    progressAnimation?.pause();
-  }
-
-  function syncGallery() {
-    if (!running() || hovering || focused || touching || cards.length < 2) {
-      stopGalleryClock();
-      return;
-    }
-    if (galleryTimer !== undefined) return;
-    galleryStarted = performance.now();
-    progressAnimation?.play();
-    galleryTimer = setTimeout(() => {
-      galleryTimer = undefined;
-      select(index + 1);
-    }, remaining);
-  }
-
-  function select(next) {
-    if (!cards.length) return;
-    index = (next + cards.length) % cards.length;
-    cards.forEach((card, i) => {
-      const offset = (i - index + cards.length) % cards.length;
-      card.dataset.position =
-        offset === 0
-          ? "front"
-          : offset === 1
-            ? "next"
-            : offset === cards.length - 1
-              ? "previous"
-              : "away";
-      card.tabIndex = offset ? -1 : 0;
-      card.inert = offset !== 0;
-      if (offset) card.setAttribute("aria-hidden", "true");
-      else card.removeAttribute("aria-hidden");
-    });
-    dots.forEach((dot, i) => {
-      if (i === index) dot.setAttribute("aria-current", "true");
-      else dot.removeAttribute("aria-current");
-    });
-    count.textContent = `${index + 1} / ${cards.length}`;
-    resetGalleryClock();
-    syncGallery();
-  }
-
-  function syncRibbon() {
-    if (!ribbonReady) return;
-    if (running()) {
-      if (!ribbonStarted) {
-        ribbonStarted = true;
-        ribbon
-          .querySelectorAll("animate")
-          .forEach((node) => node.beginElement());
+    const step = () => {
+      if (!running()) return;
+      if (deleting) {
+        if (--letters === 0) {
+          deleting = false;
+          phrase = (phrase + 1) % phrases.length;
+        }
+      } else if (++letters === phrases[phrase].length) {
+        deleting = true;
       }
-      ribbon.unpauseAnimations();
-    } else ribbon.pauseAnimations();
+      accent.textContent = phrases[phrase].slice(0, letters);
+      typeTimer = setTimeout(
+        step, letters === phrases[phrase].length ? 2200 : letters === 0 ? 280 : deleting ? 65 : 105,
+      );
+    };
+    typeTimer = setTimeout(step, 1800);
+  }
+
+  function releaseJelly() {
+    drag = undefined;
+    jelly.classList.remove("is-pulled");
+    jelly.style.removeProperty("--jelly-pull");
   }
 
   function sync() {
     const still = reduced();
     root.classList.toggle("showcase-still", still);
+    root.classList.toggle("showcase-paused", !running());
     toggle.disabled = still;
-    toggle.setAttribute("aria-pressed", String(paused));
-    toggle.setAttribute(
-      "aria-label",
-      still
-        ? "Анимации баннера отключены настройками"
-        : paused
-          ? "Запустить анимации баннера"
-          : "Остановить анимации баннера",
-    );
-    toggle.querySelector("[data-showcase-toggle-icon]").textContent =
-      still || paused ? "▶" : "Ⅱ";
+    jelly.disabled = still;
+    toggle.setAttribute("aria-pressed", String(paused || still));
+    toggle.setAttribute("aria-label", still ? "Анимации отключены настройками"
+      : paused ? "Запустить анимации баннера" : "Остановить анимации баннера");
+    toggle.querySelector("[data-showcase-toggle-icon]").textContent = paused || still ? "▶" : "Ⅱ";
     toggle.querySelector("[data-showcase-toggle-label]").textContent = still
-      ? "Без анимации"
-      : paused
-        ? "Запустить анимации"
-        : "Пауза анимаций";
-    syncGlyphs();
-    syncGallery();
-    syncRibbon();
+      ? "Без анимации" : paused ? "Запустить анимации" : "Пауза анимаций";
+    if (!running()) {
+      resetMagnets();
+      releaseJelly();
+      jiggle?.cancel();
+    }
+    syncTyping();
   }
 
   toggle.hidden = false;
@@ -225,99 +111,51 @@
     paused = !paused;
     sync();
   });
-  root
-    .querySelector("[data-hero-prev]")
-    ?.addEventListener("click", () => select(index - 1));
-  root
-    .querySelector("[data-hero-next]")
-    ?.addEventListener("click", () => select(index + 1));
-  dots.forEach((dot, i) => dot.addEventListener("click", () => select(i)));
-  gallery.addEventListener("pointerenter", (event) => {
-    if (event.pointerType !== "mouse") return;
-    hovering = true;
-    syncGallery();
-  });
-  gallery.addEventListener("pointerleave", () => {
-    hovering = false;
-    syncGallery();
-  });
-  gallery.addEventListener("focusin", () => {
-    focused = true;
-    syncGallery();
-  });
-  gallery.addEventListener("focusout", (event) => {
-    focused = gallery.contains(event.relatedTarget);
-    syncGallery();
-  });
 
-  // Horizontal touch gestures switch cards; vertical gestures remain page scrolling.
-  let touch;
-  let suppressClick = false;
-  deck.addEventListener("pointerdown", (event) => {
-    if (event.pointerType === "mouse") return;
-    touch = { id: event.pointerId, x: event.clientX, y: event.clientY };
-    suppressClick = false;
-    touching = true;
-    syncGallery();
+  jelly.addEventListener("pointerdown", (event) => {
+    if (!running() || !event.isPrimary || event.button !== 0) return;
+    jiggle?.cancel();
+    dragged = false;
+    const rect = jelly.getBoundingClientRect();
+    const origin = 50 + clamp((event.clientX - rect.left) / rect.width * 100 - 50, 35);
+    jelly.style.setProperty("--jelly-origin", `${origin}% 50%`);
+    drag = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    jelly.setPointerCapture(event.pointerId);
   });
-  deck.addEventListener("pointerup", (event) => {
-    if (!touch || touch.id !== event.pointerId) return;
-    const dx = event.clientX - touch.x;
-    const dy = event.clientY - touch.y;
-    touch = undefined;
-    touching = false;
-    if (Math.abs(dx) >= 45 && Math.abs(dx) > Math.abs(dy) * 1.3) {
-      suppressClick = true;
-      select(index + (dx < 0 ? 1 : -1));
-    }
-    syncGallery();
+  jelly.addEventListener("pointermove", (event) => {
+    if (!drag || event.pointerId !== drag.id) return;
+    const dx = event.clientX - drag.x;
+    const dy = event.clientY - drag.y;
+    if (!dragged && Math.hypot(dx, dy) < 4) return;
+    dragged = true;
+    const x = clamp(dx * 0.25, 11);
+    const y = clamp(dy * 0.28, 8);
+    const squash = Math.min(0.075, Math.hypot(x, y) / 155);
+    jelly.style.setProperty("--jelly-pull",
+      `translate(${x}px, ${y}px) skewX(${x * 0.4}deg) scale(${1 + squash}, ${1 - squash * 0.8})`,
+    );
+    jelly.classList.add("is-pulled");
   });
-  deck.addEventListener("pointercancel", () => {
-    touch = undefined;
-    touching = false;
-    syncGallery();
+  jelly.addEventListener("lostpointercapture", releaseJelly);
+  jelly.addEventListener("click", (event) => {
+    if (!running() || (dragged && event.detail > 0)) return;
+    jiggle?.cancel();
+    jelly.style.removeProperty("--jelly-origin");
+    jiggle = wordmark.animate([
+      { transform: "scale(1)" },
+      { transform: "scale(.95, 1.07)", offset: 0.23 },
+      { transform: "scale(1.035, .97)", offset: 0.53 },
+      { transform: "scale(1)" },
+    ], { duration: 360, easing: "ease-out" });
   });
-  deck.addEventListener(
-    "click",
-    (event) => {
-      if (suppressClick) {
-        event.preventDefault();
-        suppressClick = false;
-      }
-    },
-    true,
-  );
 
   media.addEventListener("change", sync);
   document.addEventListener("visibilitychange", sync);
-  const observer = new IntersectionObserver(([entry]) => {
+  new IntersectionObserver(([entry]) => {
     inView = entry.isIntersecting;
     sync();
-  });
-  observer.observe(root);
-  window.addEventListener("pagehide", () => {
-    suspended = true;
-    sync();
-  });
-  window.addEventListener("pageshow", () => {
-    suspended = false;
-    // Restored pages may still have keyboard focus inside the gallery.
-    focused = gallery.contains(document.activeElement);
-    hovering =
-      matchMedia("(hover: hover)").matches && gallery.matches(":hover");
-    sync();
-  });
-
-  select(0);
+  }).observe(root);
+  window.addEventListener("pagehide", () => { suspended = true; sync(); });
+  window.addEventListener("pageshow", () => { suspended = false; sync(); });
   sync();
-  // Measure a whole repeated phrase after the font loads, so the loop has no jump.
-  document.fonts.ready.then(() => {
-    const text = ribbon.querySelector("[data-ribbon-phrase]");
-    const scroll = ribbon.querySelector("[data-ribbon-scroll]");
-    const period = text.getComputedTextLength();
-    scroll.setAttribute("to", String(-period));
-    scroll.setAttribute("dur", `${period / 52}s`);
-    ribbonReady = true;
-    syncRibbon();
-  });
 })();

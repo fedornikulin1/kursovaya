@@ -2,6 +2,31 @@
 .mobile-help-link {
   display: none;
 }
+.support-launcher {
+  position: fixed;
+  right: calc(18px + env(safe-area-inset-right, 0px));
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  z-index: 21;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 5px 16px #1b4aa736;
+}
+.support-launcher:hover {
+  background: #1945c0;
+}
+.support-launcher:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+.support-launcher .icon {
+  width: 23px;
+  height: 23px;
+}
 .help-mobile-actions {
   display: none;
 }
@@ -329,7 +354,7 @@
 }
 .support-create-form textarea {
   min-height: 180px;
-  resize: vertical;
+  resize: none;
 }
 .support-writing-note {
   padding: 15px 0;
@@ -534,7 +559,7 @@
 }
 .support-reply-form textarea {
   min-height: 110px;
-  resize: vertical;
+  resize: none;
 }
 .support-reply-form > div:last-child {
   display: flex;
@@ -561,6 +586,11 @@
   color: #8394b1;
   padding: 22px 5px;
 }
+@media (max-width: 1150px) {
+  .messenger .messenger-composer-wrap {
+    padding-right: calc(54px + env(safe-area-inset-right, 0px));
+  }
+}
 @media (max-width: 1100px) {
   .desktop-nav {
     gap: 16px;
@@ -575,6 +605,12 @@
   }
 }
 @media (max-width: 800px) {
+  .campus-chat .campus-chat-compose {
+    padding-right: calc(54px + env(safe-area-inset-right, 0px));
+  }
+  .campus-chat .campus-chat-jump:not([hidden]) {
+    right: calc(54px + env(safe-area-inset-right, 0px));
+  }
   .help-layout,
   .support-detail-layout {
     grid-template-columns: minmax(0, 1fr) 270px;
@@ -603,6 +639,19 @@
   }
 }
 @media (max-width: 700px) {
+  .support-launcher {
+    right: calc(12px + env(safe-area-inset-right, 0px));
+    bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+    width: 44px;
+    height: 44px;
+  }
+  .campus-chat .campus-chat-compose,
+  .messenger .messenger-composer-wrap {
+    padding-right: calc(64px + env(safe-area-inset-right, 0px));
+  }
+  .campus-chat .campus-chat-jump:not([hidden]) {
+    right: calc(64px + env(safe-area-inset-right, 0px));
+  }
   .help-mobile-actions {
     display: flex;
     flex-wrap: wrap;

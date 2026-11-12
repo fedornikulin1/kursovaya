@@ -598,3 +598,85 @@
 .reduce-motion .micro-folder.is-open .micro-folder-front {
   transform: rotateX(-13deg);
 }
+
+/* Confirmed actions get a brief visual response. */
+.favorite-pulse .icon {
+  animation: favorite-pulse 340ms cubic-bezier(.2, .75, .35, 1);
+}
+@keyframes favorite-pulse {
+  25% { transform: scale(.74); }
+  64% { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+
+.custom-select-glide {
+  position: absolute;
+  inset: 0 6px auto;
+  border-radius: 8px;
+  background: #edf2ff;
+  pointer-events: none;
+  transition: transform 160ms cubic-bezier(.22, .7, .25, 1);
+}
+.custom-select-list > .custom-select-option { position: relative; }
+.custom-select-list > .custom-select-option:is(:hover, .is-focused, [aria-selected="true"]) {
+  background: transparent;
+}
+.custom-select-list > .custom-select-option.is-focused { color: #254eaf; }
+
+.ad-save-mark {
+  display: none;
+  width: 17px;
+  height: 17px;
+  flex: none;
+  place-items: center;
+}
+.ad-save-button[data-state="saving"] .ad-save-mark {
+  display: grid;
+  border: 2px solid #ffffff55;
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: ad-save-spin 650ms linear infinite;
+}
+.ad-save-button[data-state="saving"] .ad-save-mark .icon { visibility: hidden; }
+.ad-save-button[data-state="saved"] .ad-save-mark {
+  display: grid;
+  animation: ad-save-confirm 280ms ease-out both;
+}
+.ad-save-button[data-state="saved"]:disabled { opacity: 1; }
+@keyframes ad-save-spin { to { transform: rotate(360deg); } }
+@keyframes ad-save-confirm {
+  from { opacity: 0; transform: scale(.55); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.saved-search-undo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  overflow: hidden;
+  border: 1px solid #dce5f5;
+  border-radius: 12px;
+  background: #f4f7ff;
+}
+.saved-search-undo p { margin: 0; color: #385278; font-size: 13px; }
+.saved-search-undo .btn { min-height: 34px; padding: 6px 12px; }
+.saved-search-undo[hidden],
+.saved-search-undo [hidden] { display: none; }
+.saved-search-fuse {
+  position: absolute;
+  inset: auto 0 0;
+  height: 2px;
+  background: var(--blue);
+  transform-origin: left;
+}
+
+.reduce-motion .custom-select-glide { transition: none; }
+.reduce-motion :is(.favorite-pulse .icon, .ad-save-button[data-state] .ad-save-mark) { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .custom-select-glide { transition: none; }
+  .favorite-pulse .icon, .ad-save-button[data-state] .ad-save-mark { animation: none; }
+}

@@ -1,9 +1,11 @@
 from django.urls import path
-from . import views
+from . import chat, views
 
 app_name = "campus"
 urlpatterns = [
     path("", views.exchange, name="exchange"),
+    path("chat/", chat.chat, name="chat"),
+    path("chat/feed/", chat.chat_feed, name="chat_feed"),
     path("requests/new/", views.request_form, name="request_create"),
     path("requests/<int:pk>/", views.request_detail, name="request_detail"),
     path("requests/<int:pk>/edit/", views.request_form, name="request_edit"),

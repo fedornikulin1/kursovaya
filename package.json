@@ -9,5 +9,8 @@
     "@tailwindcss/cli": "^4.3.0",
     "prettier": "^3.9.10",
     "tailwindcss": "^4.3.0"
+  },
+  "dependencies": {
+    "flatpickr": "4.6.13"
   }
 }
