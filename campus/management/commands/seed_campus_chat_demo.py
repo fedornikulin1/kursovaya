@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection, transaction
 
-from campus.chat_moderation import validate_campus_chat_body
+from config.content_moderation import validate_campus_chat_body
 from campus.models import CampusMessage
 
 

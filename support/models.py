@@ -71,6 +71,60 @@ class SupportMessage(models.Model):
         verbose_name_plural = "Сообщения поддержки"
 
 
+class ContentReport(models.Model):
+    class Kind(models.TextChoices):
+        LISTING = "listing", "Объявление"
+        CHAT = "chat", "Сообщение чата кампуса"
+
+    class Reason(models.TextChoices):
+        HARASSMENT = "harassment", "Оскорбления или угрозы"
+        FRAUD = "fraud", "Подозрение на мошенничество"
+        PROHIBITED_GOODS = "prohibited_goods", "Запрещённые товары"
+        SPAM = "spam", "Спам"
+        OTHER = "other", "Другая причина"
+
+    class Status(models.TextChoices):
+        NEW = "new", "Новая"
+        REVIEW = "review", "На рассмотрении"
+        RESOLVED = "resolved", "Меры приняты"
+        DISMISSED = "dismissed", "Нарушение не подтверждено"
+
+    reporter = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name="Заявитель", on_delete=models.CASCADE)
+    ticket = models.OneToOneField(
+        SupportTicket, verbose_name="Обращение", related_name="content_report",
+        on_delete=models.CASCADE,
+    )
+    kind = models.CharField("Тип", max_length=12, choices=Kind.choices)
+    target_id = models.PositiveBigIntegerField("Номер публикации")
+    target_url = models.CharField("Ссылка на публикацию", max_length=255)
+    target_label = models.CharField("Публикация", max_length=240)
+    target_author = models.CharField("Автор публикации", max_length=150)
+    target_account = models.ForeignKey(
+        settings.AUTH_USER_MODEL, verbose_name="Аккаунт автора", related_name="received_content_reports",
+        on_delete=models.SET_NULL, null=True, editable=False,
+    )
+    target_excerpt = models.TextField("Снимок текста", max_length=10000)
+    reason = models.CharField("Причина жалобы", max_length=24, choices=Reason.choices)
+    status = models.CharField("Статус", max_length=12, choices=Status.choices, default=Status.NEW)
+    moderator_note = models.TextField("Решение модератора", max_length=2000, blank=True)
+    created_at = models.DateTimeField("Подана", auto_now_add=True)
+    updated_at = models.DateTimeField("Обновлена", auto_now=True)
+
+    class Meta:
+        verbose_name = "Жалоба на публикацию"
+        verbose_name_plural = "Жалобы на публикации"
+        ordering = ["-created_at", "-pk"]
+        indexes = [models.Index(fields=["status", "-created_at"])]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["reporter", "kind", "target_id"], name="one_content_report_per_user",
+            )
+        ]
+
+    def __str__(self):
+        return f"№ {self.pk} · {self.get_kind_display()}"
+
+
 class FAQ(models.Model):
     topic = models.CharField("Раздел", max_length=20, choices=SupportTicket.Topic.choices)
     question = models.CharField("Вопрос", max_length=200)

@@ -11,12 +11,12 @@
     <title>{% block title %}ДоскаСВФУ — свои рядом{% endblock %}</title>
     <script src="{% static 'ads/js/boot.js' %}?v=3"></script>
     <link rel="stylesheet" href="{% static 'ads/css/tailwind.css' %}">
-    <link rel="stylesheet" href="{% static 'ads/css/app.css' %}?v=20261112-r4">
+    <link rel="stylesheet" href="{% static 'ads/css/app.css' %}?v=20261112-r5">
     <script defer src="{% static 'ads/js/app.js' %}?v=7"></script>
     <link rel="stylesheet" href="{% static 'ads/css/refinements.css' %}?v=5">
     <script defer src="{% static 'ads/js/selects.js' %}?v=9"></script>
     <link rel="stylesheet" href="{% static 'ads/css/conversations.css' %}?v=4">
-    <script defer src="{% static 'ads/js/messenger.js' %}?v=4"></script>
+    <script defer src="{% static 'ads/js/messenger.js' %}?v=5"></script>
     <link rel="stylesheet" href="{% static 'ads/css/iteration.css' %}?v=8">
     <script defer src="{% static 'ads/js/photo-editor.js' %}?v=8"></script>
     <script defer src="{% static 'ads/js/interface.js' %}?v=6"></script>
@@ -32,6 +32,8 @@
     <link rel="stylesheet" href="{% static 'ads/css/controls.css' %}?v=5">
     <link rel="stylesheet" href="{% static 'ads/css/header-navigation.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'ads/css/profile.css' %}?v=1">
+    <link rel="stylesheet" href="{% static 'ads/css/notifications.css' %}?v=1">
+    {% if user.is_authenticated %}<script defer src="{% static 'ads/js/notifications.js' %}?v=1"></script>{% endif %}
     <script defer src="{% static 'ads/vendor/flatpickr/flatpickr.min.js' %}"></script>
     <script defer src="{% static 'ads/vendor/flatpickr/ru.js' %}"></script>
     <script defer src="{% static 'ads/js/calendar.js' %}?v=2"></script>
@@ -70,6 +72,11 @@
             <span class="header-publish-arrow" aria-hidden="true">↗</span>
           </a>
           {% if user.is_authenticated %}
+            <a class="notification-bell" href="{% url 'ads:notifications' %}" aria-label="Уведомления{% if unread_board_notifications %}, непрочитанных {{ unread_board_notifications }}{% endif %}" title="Уведомления"
+               {% if request.resolver_match.url_name == 'notifications' %}aria-current="page"{% endif %} data-notification-count="{% url 'ads:notification_count' %}">
+              {% include "components/icon.html" with name="bell" %}
+              <span data-notification-badge aria-hidden="true" {% if not unread_board_notifications %}hidden{% endif %}>{{ unread_board_notifications }}</span>
+            </a>
             <details class="account-menu" data-account-menu>
               <summary class="avatar avatar-small" aria-label="Меню пользователя">
                 {% include "components/profile_avatar.html" with portrait=account_profile person=user only %}

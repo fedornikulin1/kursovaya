@@ -46,6 +46,8 @@
   const sendStatus = chat.querySelector("[data-campus-send-status]");
   const errors = composer.querySelector("[data-campus-errors]");
   const sendButton = composer.querySelector('[type="submit"]');
+  const empty = chat.querySelector("[data-campus-empty]");
+  let watchOffset = 0;
   let latestId = chat.dataset.latestId || "0";
   let timer;
 
@@ -95,7 +97,7 @@
       added = true;
     }
     if (added) {
-      chat.querySelector("[data-campus-empty]")?.remove();
+      empty.hidden = true;
       if (follow) showLatest();
       else jump.hidden = false;
     }
@@ -123,8 +125,12 @@
         errors.textContent = "Войдите снова, чтобы продолжить.";
         return;
       }
-      if (response.status !== 201 && response.status !== 400) throw new Error("Campus chat send failed");
+      if (![201, 400, 413, 429].includes(response.status)) throw new Error("Campus chat send failed");
       const payload = await response.json();
+      if (response.status === 413 || response.status === 429) {
+        errors.textContent = payload.detail;
+        return;
+      }
       if (response.status === 400) {
         errors.textContent = Object.values(payload.errors).flat().map((error) => error.message).join(" ");
         return;
@@ -154,6 +160,14 @@
     try {
       const url = new URL(chat.dataset.feedUrl, window.location.origin);
       url.searchParams.set("after", latestId);
+      const current = [...messages.querySelectorAll('[data-wanted-state="open"]')]
+        .map((badge) => badge.closest("[data-campus-message]"));
+      if (current.length) {
+        if (watchOffset >= current.length) watchOffset = 0;
+        const watched = current.slice(watchOffset, watchOffset + 50);
+        url.searchParams.set("watch", watched.map((row) => row.dataset.campusMessage).join(","));
+        watchOffset += watched.length;
+      }
       const response = await fetch(url, {
         headers: { Accept: "application/json" },
         cache: "no-store",
@@ -164,9 +178,23 @@
         return;
       }
       if (!response.ok) throw new Error("Campus chat feed unavailable");
-      const { html, has_more: hasMore } = await response.json();
+      const { html, has_more: hasMore, removed = [], closed_requests: closedRequests = {} } = await response.json();
       status.textContent = "";
+      for (const id of removed) {
+        const row = document.getElementById(`campus-message-${id}`);
+        if (row?.parentElement === messages) row.remove();
+      }
+      for (const [id, label] of Object.entries(closedRequests)) {
+        const row = document.getElementById(`campus-message-${id}`);
+        const badge = row?.querySelector("[data-wanted-state]");
+        if (row?.parentElement !== messages || !badge) continue;
+        badge.textContent = label;
+        badge.dataset.wantedState = "closed";
+        badge.classList.add("is-closed");
+        row.querySelector("[data-wanted-action]")?.remove();
+      }
       latestId = appendMessages(html) || latestId;
+      empty.hidden = messages.childElementCount > 0;
       if (hasMore) delay = 100;
     } catch {
       status.textContent = "Не удалось обновить ленту. Повторяем…";

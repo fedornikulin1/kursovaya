@@ -171,6 +171,8 @@ class Ad(models.Model):
     exchange_for = models.CharField("На что обменяю", max_length=200, blank=True)
     created_at = models.DateTimeField("Создано", auto_now_add=True)
     updated_at = models.DateTimeField("Изменено", auto_now=True)
+    published_at = models.DateTimeField(null=True, editable=False, db_index=True)
+    moderation_hidden = models.BooleanField("Скрыто модератором", default=False)
 
     class Meta:
         verbose_name = "Объявление"
@@ -185,6 +187,10 @@ class Ad(models.Model):
                 condition=Q(price__isnull=True) | Q(price__gte=0), name="ad_price_nonnegative"
             ),
             models.CheckConstraint(
+                condition=Q(moderation_hidden=False) | ~Q(status="active"),
+                name="ad_hidden_from_publication",
+            ),
+            models.CheckConstraint(
                 condition=(
                     Q(price_type="fixed", price__isnull=False, price__gte=0)
                     | Q(price_type="free", price__isnull=False, price=0)
@@ -194,10 +200,24 @@ class Ad(models.Model):
             ),
         ]
 
+    def save(self, *args, update_fields=None, **kwargs):
+        if self.status == self.Status.ACTIVE and self.published_at is None and (
+            update_fields is None or "status" in update_fields
+        ):
+            self.published_at = timezone.now()
+            if update_fields is not None:
+                update_fields = {*update_fields, "published_at"}
+        return super().save(*args, update_fields=update_fields, **kwargs)
+
     def clean(self):
         super().clean()
         from campus.models import validate_window
+        from config.content_moderation import validate_listing_text
 
+        if self.status == self.Status.ACTIVE:
+            if self.moderation_hidden:
+                raise ValidationError({"status": "Объявление скрыто модератором. Восстановить его может сотрудник площадки."})
+            validate_listing_text(self.title, self.description, self.exchange_for)
         validate_window(self.available_from, self.available_until)
         if self.is_study and not self.subject.strip():
             raise ValidationError({"subject": "Для учебного обмена укажите предмет."})
@@ -272,6 +292,52 @@ class SavedSearch(models.Model):
         ]
 
 
+class Notification(models.Model):
+    class Kind(models.TextChoices):
+        SEARCH = "search", "Сохранённый поиск"
+        OFFER = "offer", "Отклик на запрос"
+        REPORT = "report", "Модерация"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="board_notifications")
+    kind = models.CharField(max_length=10, choices=Kind.choices)
+    listing = models.ForeignKey(Ad, null=True, on_delete=models.CASCADE)
+    message = models.OneToOneField("Message", null=True, on_delete=models.CASCADE)
+    ticket = models.OneToOneField("support.SupportTicket", null=True, on_delete=models.CASCADE)
+    detail = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    read_at = models.DateTimeField(null=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+        indexes = [models.Index(fields=["user", "read_at", "-created_at"])]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "listing"], name="one_notification_per_listing_user"),
+            models.CheckConstraint(
+                condition=(
+                    Q(kind="search", listing__isnull=False, message__isnull=True, ticket__isnull=True)
+                    | Q(kind="offer", listing__isnull=True, message__isnull=False, ticket__isnull=True)
+                    | Q(kind="report", listing__isnull=True, message__isnull=True, ticket__isnull=False)
+                ),
+                name="notification_has_matching_target",
+            ),
+        ]
+
+    @property
+    def title(self):
+        if self.kind == self.Kind.SEARCH:
+            return self.listing.title
+        if self.kind == self.Kind.OFFER:
+            return "На ваш запрос откликнулись"
+        return "По вашей жалобе принято решение"
+
+    def get_absolute_url(self):
+        if self.kind == self.Kind.SEARCH:
+            return reverse("ads:ad_detail", args=[self.listing_id])
+        if self.kind == self.Kind.OFFER:
+            return reverse("ads:conversation", args=[self.message.response_id])
+        return reverse("support:ticket", args=[self.ticket_id])
+
+
 class Response(models.Model):
     """A conversation about a listing, or a direct conversation between two users.
 
@@ -336,6 +402,10 @@ class Message(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="sent_messages"
     )
     text = models.TextField("Сообщение", max_length=4000)
+    offered_ad = models.ForeignKey(
+        Ad, verbose_name="Предложенное объявление", null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="+",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     read_at = models.DateTimeField("Прочитано", null=True, blank=True)
 

@@ -9,7 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.core import signing
 from django.core.exceptions import ValidationError
 from django.db.models import Avg, Case, Count, IntegerField, Q, Value, When
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -19,6 +19,7 @@ from django.urls import reverse, reverse_lazy
 from django.views.decorators.http import require_POST, require_safe, require_http_methods
 from django.views.generic import ListView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.views import LoginView
 
 from .filters import AdFilter
 from .forms import AdForm, MessageForm, ProfileForm, RegisterForm, ReviewForm, SettingsForm
@@ -40,7 +41,14 @@ SAVED_SEARCH_UNDO_SALT = "ads.saved-search-undo"
 SAVED_SEARCH_UNDO_SECONDS = 10
 
 
+class CampusLoginView(LoginView):
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(student_access_only=settings.STUDENT_ACCESS_ONLY, **kwargs)
+
+
 def register(request):
+    if settings.STUDENT_ACCESS_ONLY:
+        return redirect("login")
     if request.user.is_authenticated:
         return redirect("ads:ad_list")
     form = RegisterForm(request.POST or None)
@@ -62,6 +70,8 @@ def register(request):
 @never_cache
 @require_http_methods(["GET", "POST"])
 def confirm_registration_email(request):
+    if settings.STUDENT_ACCESS_ONLY:
+        raise Http404
     if not settings.EMAIL_VERIFICATION_REQUIRED:
         request.session.pop("pending_confirmation_user", None)
         messages.info(request, "Код из письма больше не нужен. Войдите с вашим логином и паролем.")
@@ -112,18 +122,20 @@ class AdListView(ListView):
 
     def get_context_data(self, **kwargs):
         from campus.models import Dormitory
+
         context = super().get_context_data(**kwargs)
         params = self.request.GET.copy()
         params.pop("page", None)
+        public_ads = catalogue().filter(status=Ad.Status.ACTIVE).order_by()
         context.update(
             filter=self.filterset,
             food_mode=self.request.GET.get("food") == "1",
             dormitories=Dormitory.objects.filter(is_active=True),
             querystring=params.urlencode(),
             categories=Category.objects.filter(is_active=True).annotate(
-                active_count=Count("ads", filter=Q(ads__status="active"))
+                active_count=Count("ads", filter=Q(ads__in=public_ads.values("pk")))
             ),
-            total_ads=Ad.objects.filter(status="active").count(),
+            total_ads=public_ads.count(),
             active_filters_count=sum(
                 bool(self.request.GET.get(key))
                 for key in (
@@ -351,7 +363,7 @@ class MyAdsListView(LoginRequiredMixin, ListView):
     paginate_by = 12
 
     def get_queryset(self):
-        return catalogue(self.request.user).filter(author=self.request.user)
+        return catalogue(self.request.user, include_own_hidden=True).filter(author=self.request.user)
 
 
 @login_required
@@ -402,7 +414,7 @@ def messenger_context(user, thread=None, form=None):
         "thread_count": len(threads),
         "unread_thread_count": sum(item.unread_count > 0 for item in threads),
         "other_user": thread.other_participant(user) if thread else None,
-        "chat_messages": thread.messages.select_related("sender") if thread else [],
+        "chat_messages": thread.messages.select_related("sender", "offered_ad") if thread else [],
         "form": form if form is not None else MessageForm(),
         "display_timezone": timezone.get_current_timezone_name(),
         **(meeting_context(user, thread) if thread and thread.ad_id else {}),

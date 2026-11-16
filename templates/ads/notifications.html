@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Уведомления — ДоскаСВФУ{% endblock %}
+{% block content %}
+  <section class="board-notifications" aria-labelledby="notifications-title">
+    <header class="section-toolbar board-notifications-header">
+      <h1 id="notifications-title">Уведомления</h1>
+      {% if unread_board_notifications %}
+        <form method="post" action="{% url 'ads:notifications_read_all' %}">
+          {% csrf_token %}
+          <button class="btn btn-outline" type="submit">Отметить все прочитанными</button>
+        </form>
+      {% endif %}
+    </header>
+    {% if page_obj.object_list %}
+      <ul class="surface board-notification-list">
+        {% for item in page_obj %}
+          <li>
+            <form method="post" action="{% url 'ads:notification_open' item.pk %}">
+              {% csrf_token %}
+              <button class="board-notification-row{% if not item.read_at %} is-unread{% endif %}" type="submit">
+                <span class="board-notification-icon" aria-hidden="true">
+                  {% if item.kind == 'search' %}{% include "components/icon.html" with name="search" %}
+                  {% elif item.kind == 'offer' %}{% include "components/icon.html" with name="chat" %}
+                  {% else %}{% include "components/icon.html" with name="check" %}{% endif %}
+                </span>
+                <span class="board-notification-copy">
+                  <small>{{ item.get_kind_display }}{% if not item.read_at %} · Новое{% endif %}</small>
+                  <strong>{{ item.title }}</strong>
+                  {% if item.kind == 'search' %}<span>{{ item.listing.price_label }}{% if item.listing.dormitory %} · {{ item.listing.dormitory }}{% endif %}</span>
+                  {% elif item.detail %}<span>{{ item.detail }}</span>{% endif %}
+                </span>
+                <time datetime="{{ item.created_at|date:'c' }}">{{ item.created_at|date:"d M, H:i" }}</time>
+                {% include "components/icon.html" with name="chevron" %}
+              </button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+      {% include "components/pagination.html" %}
+    {% else %}
+      <div class="empty-state surface">
+        {% include "components/icon.html" with name="bell" %}
+        <h2>Пока уведомлений нет</h2>
+        <p>Сохраните поиск в каталоге, чтобы узнать о новых подходящих объявлениях.</p>
+        <a class="btn btn-primary" href="{% url 'ads:ad_list' %}#catalog-results">К объявлениям</a>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

@@ -88,6 +88,10 @@ class StudyRequest(models.Model):
 
     def clean(self):
         validate_window(self.available_from, self.available_until)
+        if self.is_active:
+            from config.content_moderation import validate_listing_text
+
+            validate_listing_text(self.title, self.description)
 
     def get_absolute_url(self):
         return reverse("campus:request_detail", args=[self.pk])
@@ -204,16 +208,25 @@ class CampusMessage(models.Model):
         GENERAL = "general", "Сообщение"
         WANTED = "wanted", "Ищу вещь"
 
+    class WantedStatus(models.TextChoices):
+        OPEN = "open", "Ищу"
+        FOUND = "found", "Нашёл"
+        CANCELLED = "cancelled", "Уже не нужно"
+
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     dormitory = models.ForeignKey(Dormitory, verbose_name="Чат общежития", null=True, blank=True, on_delete=models.PROTECT, related_name="messages")
     body = models.TextField("Сообщение", max_length=1000)
     kind = models.CharField("Тип", max_length=10, choices=Kind.choices, default=Kind.GENERAL)
+    wanted_status = models.CharField(
+        "Статус запроса", max_length=10, choices=WantedStatus.choices, default=WantedStatus.OPEN,
+    )
     reply_to = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField("Отправлено", auto_now_add=True)
 
     class Meta:
         verbose_name = "Сообщение чата кампуса"
         verbose_name_plural = "Сообщения чата кампуса"
+        indexes = [models.Index(fields=["dormitory", "kind", "wanted_status", "id"])]
 
     def __str__(self):
         return self.body[:70]

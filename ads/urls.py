@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import notification_views, views
 
 app_name = "ads"
 urlpatterns = [
@@ -18,6 +18,10 @@ urlpatterns = [
     path("saved-searches/restore/", views.restore_saved_search, name="restore_saved_search"),
     path("saved-searches/<int:pk>/delete/", views.delete_saved_search, name="delete_saved_search"),
     path("my-ads/", views.MyAdsListView.as_view(), name="my_ads"),
+    path("notifications/", notification_views.inbox, name="notifications"),
+    path("notifications/count/", notification_views.count, name="notification_count"),
+    path("notifications/read-all/", notification_views.read_all, name="notifications_read_all"),
+    path("notifications/<int:pk>/open/", notification_views.open_notification, name="notification_open"),
     path("messages/", views.inbox, name="inbox"),
     path("messages/sidebar/", views.inbox_sidebar, name="inbox_sidebar"),
     path("messages/<int:pk>/", views.conversation, name="conversation"),

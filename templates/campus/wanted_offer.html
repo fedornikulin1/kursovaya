@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Отклик на запрос — ДоскаСВФУ{% endblock %}
+{% block content %}
+  <div class="surface auth-surface request-offer">
+    <h1>У меня есть</h1>
+    <p class="muted">Кому: {{ wanted.author.get_full_name|default:wanted.author.username }}</p>
+    <blockquote class="request-quote">{{ wanted.body }}</blockquote>
+    <form method="post">
+      {% csrf_token %}
+      {% include "components/fields.html" %}
+      <button class="btn btn-primary" type="submit">{% include "components/icon.html" with name="send" %} Написать лично</button>
+      <a href="{{ back_url }}" class="btn btn-quiet">К запросу</a>
+    </form>
+  </div>
+{% endblock %}

@@ -6,6 +6,7 @@ from .models import SupportTicket
 def tickets_for(user):
     return (
         SupportTicket.objects.filter(user=user)
+        .select_related("content_report")
         .annotate(
             unread_answers=Count(
                 "messages", filter=Q(messages__from_staff=True, messages__read_at__isnull=True)

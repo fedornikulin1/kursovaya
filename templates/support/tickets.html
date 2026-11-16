@@ -12,7 +12,11 @@
       <a class="support-ticket-row" href="{{ ticket.get_absolute_url }}">
         <span class="ticket-row-icon">{% include "components/icon.html" with name="chat" %}</span>
         <span class="ticket-row-copy"><small>№ {{ ticket.pk }} · {{ ticket.get_topic_display }}</small><strong>{{ ticket.subject }}</strong><span>Обновлено {{ ticket.updated_at|date:"d M, H:i" }}</span></span>
-        <span class="support-status {{ ticket.status }}">{{ ticket.get_status_display }}</span>
+        {% if ticket.content_report %}
+          <span class="support-status {% if ticket.content_report.status == 'resolved' or ticket.content_report.status == 'dismissed' %}closed{% else %}open{% endif %}">{{ ticket.content_report.get_status_display }}</span>
+        {% else %}
+          <span class="support-status {{ ticket.status }}">{{ ticket.get_status_display }}</span>
+        {% endif %}
         {% if ticket.unread_answers %}<b class="support-answer-count">{{ ticket.unread_answers }}</b>{% endif %}
         {% include "components/icon.html" with name="chevron" %}
       </a>

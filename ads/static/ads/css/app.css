@@ -2627,3 +2627,27 @@ input[type="file"]::file-selector-button {
     scroll-behavior: auto !important;
   }
 }
+.request-offer .request-quote {
+  margin: 16px 0 22px;
+  padding: 13px 16px;
+  border-left: 3px solid #9db4ee;
+  border-radius: 6px;
+  background: #eef3ff;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.messenger-bubble .messenger-offered-listing {
+  display: block;
+  margin: 8px 0;
+  color: #2352c4;
+  font-weight: 600;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+.listing-report-link {
+  display: block;
+  margin-top: 10px;
+  color: #944757;
+  font-size: .85rem;
+}
+.listing-report-link:hover { text-decoration: underline; }

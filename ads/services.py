@@ -9,7 +9,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from .models import Ad, AdImage, Message, Response, Review, UserProfile
+from .models import Ad, AdImage, Message, Notification, Response, Review, UserProfile
 from .validators import MAX_IMAGES, validate_image
 
 
@@ -69,6 +69,8 @@ def save_ad(*, ad, author, photos=(), delete_photos=()):
         raise PermissionDenied("Изменять объявление может только автор.")
     if ad.pk:
         current = Ad.objects.select_for_update().get(pk=ad.pk)
+        ad.moderation_hidden = current.moderation_hidden
+        ad.published_at = current.published_at
         from campus.models import Meeting
 
         occupied = current.meetings.filter(
@@ -110,7 +112,7 @@ def start_conversation(*, ad, user, text):
     ad = Ad.objects.select_for_update().get(pk=ad.pk)
     if ad.author_id == user.pk:
         raise ValidationError("Это ваше объявление.")
-    if ad.status != Ad.Status.ACTIVE:
+    if ad.status != Ad.Status.ACTIVE or not ad.author.is_active:
         raise ValidationError("Объявление уже закрыто.")
     conversation, _ = Response.objects.get_or_create(ad=ad, user=user)
     send_message(conversation=conversation, sender=user, text=text)
@@ -123,11 +125,13 @@ def direct_pair(user, recipient):
 
 
 @transaction.atomic
-def start_direct_conversation(*, user, recipient, text):
+def start_direct_conversation(*, user, recipient, text, offered_ad=None, wanted_reply=False):
     if user.pk == recipient.pk:
         raise ValidationError("Нельзя написать самому себе.")
     conversation, _ = Response.objects.get_or_create(ad=None, **direct_pair(user, recipient))
-    send_message(conversation=conversation, sender=user, text=text)
+    message = send_message(conversation=conversation, sender=user, text=text, offered_ad=offered_ad)
+    if wanted_reply:
+        Notification.objects.create(user=recipient, kind=Notification.Kind.OFFER, message=message)
     return conversation
 
 
@@ -148,13 +152,21 @@ def delete_ad(*, ad, user):
 
 
 @transaction.atomic
-def send_message(*, conversation, sender, text):
+def send_message(*, conversation, sender, text, offered_ad=None):
     if sender.pk not in conversation.participant_ids:
         raise PermissionDenied("Этот диалог вам недоступен.")
     text = text.strip()
     if not text or len(text) > 4000:
         raise ValidationError("Сообщение должно содержать от 1 до 4000 символов.")
-    message = Message.objects.create(response=conversation, sender=sender, text=text)
+    if offered_ad is not None:
+        offered_ad = Ad.objects.select_for_update().filter(
+            pk=offered_ad.pk, author=sender, status=Ad.Status.ACTIVE,
+        ).first()
+        if offered_ad is None:
+            raise ValidationError("Выберите своё опубликованное объявление.")
+    message = Message.objects.create(
+        response=conversation, sender=sender, text=text, offered_ad=offered_ad,
+    )
     Response.objects.filter(pk=conversation.pk).update(updated_at=timezone.now())
     return message
 
@@ -165,6 +177,9 @@ def mark_read(conversation, user):
     conversation.messages.filter(read_at__isnull=True).exclude(sender=user).update(
         read_at=timezone.now()
     )
+    Notification.objects.filter(
+        user=user, message__response=conversation, read_at__isnull=True,
+    ).update(read_at=timezone.now())
 
 
 @transaction.atomic

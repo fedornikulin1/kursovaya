@@ -45,6 +45,7 @@
         <h2>Нужна помощь<br> с вашей ситуацией?</h2>
         <p>Напишите нам. Вопрос и ответы останутся в личном обращении.</p>
         <a class="btn btn-primary w-full" href="{% url 'support:create' %}">Задать вопрос {% include "components/icon.html" with name="arrow" %}</a>
+        {% if assistant_enabled %}<a class="help-my-tickets" href="{% url 'support:ask' %}">Спросить ИИ-помощника →</a>{% endif %}
         <a class="help-my-tickets" href="{% url 'support:tickets' %}">Мои обращения{% if unread_support_answers %}<b>{{ unread_support_answers }} новых ответов</b>{% endif %}</a>
         <small>{% include "components/icon.html" with name="user" %} Отвечает сотрудник поддержки</small>
       </div>

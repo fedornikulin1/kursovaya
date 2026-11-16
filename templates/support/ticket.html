@@ -8,6 +8,9 @@
       <header class="support-conversation-header">
         <span class="eyebrow subtle">ОБРАЩЕНИЕ № {{ ticket.pk }}</span><h1>{{ ticket.subject }}</h1>
         <div><span>{{ ticket.get_topic_display }} · {{ ticket.created_at|date:"d M Y" }}</span><span class="support-status {{ ticket.status }}">{{ ticket.get_status_display }}</span></div>
+        {% if ticket.content_report %}
+          <p class="muted">Модерация · {{ ticket.content_report.get_status_display }}</p>
+        {% endif %}
       </header>
       <div class="support-history" role="log" aria-label="Переписка с поддержкой">
         {% for message in ticket_messages %}

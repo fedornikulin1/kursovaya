@@ -8,7 +8,7 @@
       <div class="campus-chat-message-card">
         <header>
           <a href="{% url 'ads:user_profile' message.author.username %}">{{ author_name }}</a>
-          {% if message.kind == 'wanted' %}<span class="campus-chat-wanted">{% include "components/icon.html" with name="search" %} Ищу вещь</span>{% endif %}
+          {% if message.kind == 'wanted' %}<span class="campus-chat-wanted{% if message.wanted_status != 'open' %} is-closed{% endif %}" data-wanted-state="{{ message.wanted_status }}">{% if message.wanted_status == 'open' %}{% include "components/icon.html" with name="search" %}{% endif %} {{ message.get_wanted_status_display }}</span>{% endif %}
           <time datetime="{{ message.created_at|date:'c' }}">{{ message.created_at|date:"d M, H:i" }}</time>
         </header>
         {% if message.reply_to %}
@@ -20,8 +20,28 @@
           </a>
         {% endif %}
         <p>{{ message.body }}</p>
-        <a class="campus-chat-reply" href="{% url 'campus:chat' %}?reply={{ message.pk }}{% if message.dormitory_id %}&amp;room={{ message.dormitory_id }}{% endif %}#campus-compose"
+        <div class="campus-message-actions">
+          {% if message.kind == 'wanted' and message.wanted_status == 'open' %}
+            {% if message.author_id == user.pk %}
+              <form method="post" action="{% url 'campus:close_wanted' message.pk %}" class="campus-wanted-actions" data-wanted-action>
+                {% csrf_token %}
+                {% if chat_wanted %}<input type="hidden" name="view" value="wanted">{% endif %}
+                <button type="submit" class="campus-offer-link" name="status" value="found">Нашёл</button>
+                <button type="submit" class="campus-chat-reply" name="status" value="cancelled">Уже не нужно</button>
+              </form>
+            {% else %}
+              <a class="campus-offer-link" href="{% url 'campus:offer_wanted' message.pk %}" data-wanted-action>У меня есть</a>
+            {% endif %}
+          {% endif %}
+          <a class="campus-chat-reply" href="{% url 'campus:chat' %}?reply={{ message.pk }}{% if message.dormitory_id %}&amp;room={{ message.dormitory_id }}{% endif %}#campus-compose"
            data-campus-reply="{{ message.pk }}" data-campus-author="{{ author_name }}" data-campus-excerpt="{{ message.body|truncatechars:120 }}">Ответить</a>
+          {% if message.author_id != user.pk %}
+            <details class="campus-message-menu">
+              <summary aria-label="Действия с сообщением">···</summary>
+              <a href="{% url 'support:report_chat_message' message.pk %}">Пожаловаться</a>
+            </details>
+          {% endif %}
+        </div>
       </div>
     </article>
   {% endwith %}

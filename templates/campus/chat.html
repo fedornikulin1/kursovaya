@@ -2,8 +2,8 @@
 {% load static %}
 {% block title %}Чат кампуса — ДоскаСВФУ{% endblock %}
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'ads/css/campus-chat.css' %}?v=6">
-<script defer src="{% static 'ads/js/campus-chat.js' %}?v=4"></script>
+<link rel="stylesheet" href="{% static 'ads/css/campus-chat.css' %}?v=7">
+<script defer src="{% static 'ads/js/campus-chat.js' %}?v=6"></script>
 {% endblock %}
 {% block content %}
 <section class="campus-chat" aria-labelledby="campus-chat-title" data-campus-chat
@@ -50,20 +50,18 @@
           <a href="{% url 'campus:chat' %}?{% if chat_room %}room={{ chat_room.pk }}&amp;{% endif %}view=wanted" {% if chat_wanted %}class="is-active" aria-current="page"{% endif %}>{% include "components/icon.html" with name="search" %} Что ищут</a>
         </nav>
       </div>
-      {% if chat_wanted %}<div class="campus-chat-view-note">Здесь собраны запросы «Ищу вещь» из этого чата. Есть нужная вещь? Ответьте автору.</div>{% endif %}
+      {% if chat_wanted %}<div class="campus-chat-view-note">Активные запросы из этого чата. Можете помочь? Нажмите «У меня есть», чтобы написать автору.</div>{% endif %}
       {% if chat_is_archive %}
       <div class="campus-chat-archive-note">Предыдущие сообщения <a href="{% url 'campus:chat' %}?{% if chat_room %}room={{ chat_room.pk }}&amp;{% endif %}{% if chat_wanted %}view=wanted{% endif %}">К последним сообщениям ↑</a></div>
       {% endif %}
       <div class="campus-chat-feed" data-campus-feed tabindex="0" role="log" aria-label="Сообщения {% if chat_room %}{{ chat_room.name }}{% else %}общего чата{% endif %}">
         {% if chat_older_id %}<a class="campus-chat-older" href="?before={{ chat_older_id }}{% if chat_room %}&amp;room={{ chat_room.pk }}{% endif %}{% if chat_wanted %}&amp;view=wanted{% endif %}">Более ранние сообщения</a>{% endif %}
         <div class="campus-chat-messages" data-campus-messages>{% include "campus/chat_messages.html" %}</div>
-        {% if not chat_messages %}
-        <div class="campus-chat-empty" data-campus-empty>
+        <div class="campus-chat-empty" data-campus-empty {% if chat_messages %}hidden{% endif %}>
           <span class="campus-chat-emblem">{% if chat_wanted %}{% include "components/icon.html" with name="search" %}{% else %}{% include "components/icon.html" with name="community" %}{% endif %}</span>
           <h3>{% if chat_is_archive %}Вы прочитали всё{% elif chat_wanted %}Пока никто ничего не ищет{% else %}Соседи, знакомимся?{% endif %}</h3>
           {% if not chat_is_archive %}<p>{% if chat_wanted %}Нужна вещь? Выберите «Ищу вещь» и спросите у соседей.{% else %}Поздоровайтесь или спросите, есть ли у кого-то нужная вещь.{% endif %}</p>{% endif %}
         </div>
-        {% endif %}
       </div>
       {% if not chat_is_archive %}
       <div class="campus-chat-compose" id="campus-compose">

@@ -1,0 +1,21 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}
+  <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Управление</a> ›
+    <a href="{% url 'admin:support_contentreport_changelist' %}">Жалобы на публикации</a> ›
+    <a href="{% url 'admin:support_contentreport_change' report.pk %}">Жалоба № {{ report.pk }}</a>
+  </div>
+{% endblock %}
+{% block content %}
+  <p>{{ report.target_label }} · @{{ report.target_author }}</p>
+  <p>Действие и причина сохранятся в истории жалобы.</p>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="submit-row">
+      <input type="submit" class="default" value="{{ title }}">
+      <a class="closelink" href="{% url 'admin:support_contentreport_change' report.pk %}">Отмена</a>
+    </div>
+  </form>
+{% endblock %}

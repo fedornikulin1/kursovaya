@@ -2427,6 +2427,11 @@ components:
           type: string
           readOnly: true
           title: Сообщение
+        offered_ad:
+          allOf:
+          - $ref: '#/components/schemas/OfferedListing'
+          readOnly: true
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -2440,6 +2445,7 @@ components:
       required:
       - created_at
       - id
+      - offered_ad
       - read_at
       - sender
       - text
@@ -2466,6 +2472,19 @@ components:
         * `exchange` - Обменять
         * `give` - Получить бесплатно
         * `lend` - Взять на время
+    OfferedListing:
+      type: object
+      properties:
+        title:
+          type: string
+          title: Название
+          maxLength: 200
+        url:
+          type: string
+          readOnly: true
+      required:
+      - title
+      - url
     OfferRequestRequest:
       type: object
       properties:

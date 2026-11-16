@@ -1,4 +1,4 @@
-"""A small rule filter for public chat, with checks limited to message text."""
+"""Shared rules for public chat and marketplace listings."""
 
 import re
 import unicodedata
@@ -22,6 +22,7 @@ PROHIBITED_ITEM = re.compile(
     r"каннабис|экстази|наркозакладк|фентанил|метадон|оружи|пистолет|автоматическ[а-я]*\s+винтовк|боеприпас)[а-я]*\b"
     r"|\bгероин(?:а|у|ом|е)?\b"
     r"|\bпатрон(?:а|у|ом|е|ы|ов|ам|ами|ах)?\b"
+    r"|\b(?:вейп|электронн[а-я]*\s+сигарет|никотинов[а-я]*\s+пауч|снюс|сигарет|алкогол|водк|самогон)[а-я]*\b"
     r"|\b(?:поддельн|фальшив)[а-я]*\s+"
     r"(?:паспорт|документ|удостоверени|диплом|студенческ[а-я]*\s+билет)[а-я]*\b"
 )
@@ -83,6 +84,19 @@ def validate_campus_chat_body(body, *, wanted=False):
         )
     if _has_prohibited_transaction(text, wanted):
         raise ValidationError(
-            "В чате нельзя предлагать или искать наркотики, оружие, боеприпасы и поддельные документы.",
+            "В чате нельзя предлагать или искать запрещённые товары и документы.",
             code="prohibited_transaction",
         )
+
+
+def validate_listing_text(title, description, exchange_for=""):
+    for field, value in (
+        ("title", title), ("description", description), ("description", exchange_for)
+    ):
+        normalized = _normalize(value)
+        if _has_prohibited_transaction(normalized, wanted=True):
+            raise ValidationError({
+                field: "В объявлениях нельзя предлагать или искать запрещённые товары и документы."
+            })
+        if _has_profanity(normalized):
+            raise ValidationError({field: "Уберите ненормативную лексику из объявления."})

@@ -55,6 +55,55 @@
 .campus-chat-message-card time { margin-left: auto; padding-left: 12px; color: #9aa5b6; font-size: 9px; white-space: nowrap; }
 .campus-chat-wanted { display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; border-radius: 5px; background: #dde8ff; color: #3d60b0; font-weight: 600; font-size: 9px; }
 .campus-chat-wanted .icon { width: 11px; height: 11px; }
+.campus-chat-wanted.is-closed { background: #e8f2ed; color: #376354; }
+.campus-message-actions, .campus-wanted-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px 10px;
+}
+.campus-message-actions { margin-top: 6px; }
+.campus-message-actions .campus-chat-reply { margin: 0; color: #536681; font-size: 12px; }
+.campus-offer-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: #e6edff;
+  color: #214db5;
+  font-size: 12px;
+  font-weight: 650;
+}
+.campus-offer-link:hover, .campus-offer-link:focus-visible { background: #d6e3ff; }
+.campus-message-menu { position: relative; margin-left: auto; }
+.campus-message-menu summary {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 30px;
+  border-radius: 8px;
+  list-style: none;
+  color: #536681;
+  cursor: pointer;
+  font-weight: 750;
+}
+.campus-message-menu summary::-webkit-details-marker { display: none; }
+.campus-message-menu[open] summary, .campus-message-menu summary:hover { background: #e6edff; }
+.campus-message-menu a {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  bottom: calc(100% + 2px);
+  padding: 8px 12px;
+  border: 1px solid #e1e7f2;
+  border-radius: 8px;
+  background: white;
+  color: #944757;
+  font-size: 12px;
+  box-shadow: 0 5px 14px #26426c1a;
+}
+.campus-message-menu a:hover { text-decoration: underline; }
 .campus-chat-message-card p { margin: 0; color: #34465f; font-family: inherit; font-size: 13px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
 .campus-chat-reply { display: inline-flex; align-items: center; min-height: 28px; margin-top: 2px; color: #7b8ca9; font-weight: 500; font-size: 10px; }
 .campus-chat-reply:hover { color: #2959d4; }
@@ -71,6 +120,7 @@
   outline-offset: 2px;
 }
 .campus-chat-empty { display: grid; justify-items: center; align-content: center; min-height: 280px; gap: 8px; padding: 20px; text-align: center; }
+.campus-chat-empty[hidden] { display: none; }
 .campus-chat-emblem { display: grid; place-items: center; width: 56px; height: 56px; margin-bottom: 8px; border-radius: 18px; background: #eaf0ff; color: #456bd8; }
 .campus-chat-emblem .icon { width: 26px; height: 26px; }
 .campus-chat-empty h3 { font-size: 19px; letter-spacing: -.03em; }

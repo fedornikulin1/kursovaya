@@ -20,10 +20,11 @@ class CampusAdminSite(AdminSite):
     def index(self, request, extra_context=None):
         from ads.models import Ad, Review
         from django.contrib.auth import get_user_model
-        from support.models import SupportTicket
+        from support.models import ContentReport, SupportTicket
 
         cards = []
         for model, label, condition, tone in [
+            (ContentReport, "Новые жалобы", {"status": ContentReport.Status.NEW}, "amber"),
             (SupportTicket, "Ждут ответа", {"status": "open"}, "blue"),
             (Ad, "Активных объявлений", {"status": "active"}, "green"),
             (get_user_model(), "Пользователей", {"is_active": True}, "violet"),
@@ -36,6 +37,8 @@ class CampusAdminSite(AdminSite):
                 url = reverse(f"admin:{opts.app_label}_{opts.model_name}_changelist")
                 if model is SupportTicket:
                     url += "?status__exact=open"
+                elif model is ContentReport:
+                    url += "?status__exact=new"
                 cards.append(
                     {
                         "label": label,
@@ -67,7 +70,7 @@ class CampusAdminSite(AdminSite):
             "Review": "Отзывы",
             "UserProfile": "Профили",
         }
-        # Private marketplace messages are deliberately not exposed in the staff UI.
+        # Private bodies are accessible only through the audited superuser view.
         for app in apps:
             if app["app_label"] == "ads":
                 app["name"] = "Маркетплейс"

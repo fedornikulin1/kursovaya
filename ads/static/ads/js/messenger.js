@@ -162,6 +162,13 @@
     bubble.className = "messenger-bubble";
     const content = document.createElement("p");
     content.textContent = message.text;
+    let offer;
+    if (message.offered_ad && /^\/ad\/\d+\/$/.test(message.offered_ad.url)) {
+      offer = document.createElement("a");
+      offer.className = "messenger-offered-listing";
+      offer.href = message.offered_ad.url;
+      offer.textContent = `${message.offered_ad.title} ↗`;
+    }
     const meta = document.createElement("small");
     const time = document.createElement("time");
     time.dateTime = message.created_at;
@@ -176,7 +183,9 @@
       delivery.textContent = message.read_at ? "Прочитано" : "Отправлено";
       meta.append(delivery);
     }
-    bubble.append(content, meta);
+    bubble.append(content);
+    if (offer) bubble.append(offer);
+    bubble.append(meta);
     row.append(bubble);
     // Polling and a POST may finish in either order. Keep the message order stable.
     const next = [...historyBox.querySelectorAll("[data-message-id]")].find(

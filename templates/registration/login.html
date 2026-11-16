@@ -28,8 +28,11 @@
         <button class="btn btn-primary w-full"
                 type="submit">Войти {% include "components/icon.html" with name="arrow" %}</button>
       </form>
-      <p class="auth-bottom">Ещё нет аккаунта? <a href="{% url 'ads:register' %}">Зарегистрироваться</a>
-      </p>
+      {% if student_access_only %}
+        <p class="auth-bottom">Вход доступен студентам, чей аккаунт подтвердил администратор площадки.</p>
+      {% else %}
+        <p class="auth-bottom">Ещё нет аккаунта? <a href="{% url 'ads:register' %}">Зарегистрироваться</a></p>
+      {% endif %}
       <a href="{% url 'password_reset' %}" class="reset-link">Забыли пароль?</a>
     </section>
   </div>

@@ -44,7 +44,9 @@
   <div class="listing-body">
     <div class="listing-topline">
       <span class="listing-category">{{ ad.category.name }}</span>
-      {% if ad.status != "active" %}
+      {% if ad.moderation_hidden %}
+        <span class="status">Скрыто модератором</span>
+      {% elif ad.status != "active" %}
         <span class="status">{{ ad.get_status_display }}</span>
       {% endif %}
     </div>

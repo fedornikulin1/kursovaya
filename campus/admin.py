@@ -63,7 +63,13 @@ class CampusMessageAdmin(WorkspaceAdminMixin, admin.ModelAdmin):
     search_fields = ["body", "author__username"]
     list_select_related = ["author"]
     ordering = ["-pk"]
-    readonly_fields = ["author", "body", "kind", "reply_to", "created_at"]
+    fields = ["author", "body", "kind", "request_status", "dormitory", "reply_to", "created_at"]
+    readonly_fields = fields
+
+    @admin.display(description="Статус запроса")
+    def request_status(self, obj):
+        if obj.kind == CampusMessage.Kind.WANTED:
+            return obj.get_wanted_status_display()
 
     def has_add_permission(self, request):
         return False

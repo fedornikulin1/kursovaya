@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}ИИ-помощник — ДоскаСВФУ{% endblock %}
+{% block content %}
+  <section class="surface auth-panel">
+    <h1>ИИ-помощник</h1>
+    <p class="muted">Отвечает на вопросы о площадке по справке. Вопрос обрабатывает Yandex AI Studio. Укажите только общие сведения о проблеме.</p>
+    <form method="post">
+      {% csrf_token %}
+      {% include "components/fields.html" %}
+      <button class="btn btn-primary" type="submit">Спросить</button>
+    </form>
+    {% if answer %}<div class="faq-answer"><h2>Ответ помощника</h2>{{ answer|linebreaks }}</div>{% endif %}
+    <p><a href="{% url 'support:create' %}">Написать сотруднику →</a></p>
+  </section>
+{% endblock %}

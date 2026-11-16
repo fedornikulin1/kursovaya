@@ -47,6 +47,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "config.abuse.WriteLimitsMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "axes.middleware.AxesMiddleware",
@@ -75,9 +76,21 @@ DATABASES = {
         os.getenv("DATABASE_URL") or f'sqlite:///{BASE_DIR / "db.sqlite3"}', conn_max_age=60
     )
 }
+CACHE_URL = os.getenv("CACHE_URL", "").strip()
+if CACHE_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": CACHE_URL,
+            "KEY_PREFIX": "doska-svfu",
+        }
+    }
+
+STUDENT_ACCESS_ONLY = os.getenv("STUDENT_ACCESS_ONLY", str(not DEBUG)).lower() == "true"
+SUPPORT_AI_API_KEY = os.getenv("SUPPORT_AI_API_KEY", "")
+SUPPORT_AI_MODEL_URI = os.getenv("SUPPORT_AI_MODEL_URI", "")
 AUTHENTICATION_BACKENDS = [
     "axes.backends.AxesStandaloneBackend",
-    "django.contrib.auth.backends.ModelBackend",
     "ads.authentication.RegistrationBackend",
 ]
 AXES_FAILURE_LIMIT = 8
@@ -139,7 +152,7 @@ if not DEBUG:
         SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "ads.authentication.CampusJWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticatedOrReadOnly"],
@@ -154,6 +167,7 @@ REST_FRAMEWORK = {
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
 }
 SIMPLE_JWT = {
+    "USER_AUTHENTICATION_RULE": "ads.authentication.may_sign_in",
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,

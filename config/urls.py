@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from ads.views import CampusLoginView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -16,6 +17,7 @@ urlpatterns = [
     path("", include("ads.urls")),
     path("campus/", include("campus.urls")),
     path("help/", include("support.urls")),
+    path("accounts/login/", CampusLoginView.as_view(), name="login"),
     path("accounts/", include("django.contrib.auth.urls")),
 ]
 if settings.DEBUG:

@@ -1,10 +1,14 @@
 from io import StringIO
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from rest_framework.test import APIClient
+
+from ads.models import Ad, Category, Message
 
 from .models import CampusMessage
 
@@ -16,6 +20,10 @@ from .models import CampusMessage
     },
 )
 class CampusChatTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+
     @classmethod
     def setUpTestData(cls):
         users = get_user_model().objects
@@ -144,6 +152,62 @@ class CampusChatTests(TestCase):
         feed = self.client.get(reverse("campus:chat_feed"), {"after": 0}).json()
         self.assertTrue(feed["has_more"])
         self.assertEqual(feed["latest_id"], entries[-2].pk)
+
+    def test_only_author_can_close_request_and_active_feed_reconciles_it(self):
+        wanted = CampusMessage.objects.create(author=self.asker, body="Ищу учебник", kind="wanted")
+        spare = CampusMessage.objects.create(author=self.asker, body="Ищу рюкзак", kind="wanted")
+        chat = reverse("campus:chat")
+        close = reverse("campus:close_wanted", args=[wanted.pk])
+        self.client.force_login(self.responder)
+        self.assertContains(self.client.get(chat, {"view": "wanted"}), "У меня есть")
+        self.assertEqual(self.client.post(close, {"status": "found"}).status_code, 404)
+        self.client.force_login(self.asker)
+        self.assertEqual(self.client.get(close).status_code, 405)
+        self.assertRedirects(self.client.post(close, {"status": "found", "view": "wanted"}), f"{chat}?view=wanted")
+        self.client.post(close, {"status": "cancelled"})
+        wanted.refresh_from_db()
+        self.assertEqual(wanted.wanted_status, CampusMessage.WantedStatus.FOUND)
+        self.client.post(reverse("campus:close_wanted", args=[spare.pk]), {"status": "cancelled"})
+        page = self.client.get(chat)
+        self.assertContains(page, "Нашёл")
+        self.assertContains(page, "Уже не нужно")
+        self.assertNotContains(self.client.get(chat, {"view": "wanted"}), wanted.body)
+        feed = reverse("campus:chat_feed")
+        response = self.client.get(feed, {"view": "wanted", "watch": f"{wanted.pk},{spare.pk}"}).json()
+        self.assertEqual(set(response["removed"]), {str(wanted.pk), str(spare.pk)})
+        response = self.client.get(feed, {"after": spare.pk, "watch": wanted.pk}).json()
+        self.assertEqual(response["closed_requests"], {str(wanted.pk): "Нашёл"})
+
+    def test_private_offer_accepts_only_own_active_listing_and_supports_text_without_it(self):
+        wanted = CampusMessage.objects.create(author=self.asker, body="Ищу линейку", kind="wanted")
+        offer_url = reverse("campus:offer_wanted", args=[wanted.pk])
+        category = Category.objects.create(name="Канцелярия")
+        own = Ad.objects.create(author=self.responder, category=category, title="Линейка", price=200)
+        foreign = Ad.objects.create(author=self.asker, category=category, title="Чужой товар", price=300)
+        self.client.force_login(self.responder)
+        page = self.client.get(offer_url)
+        self.assertContains(page, own.title)
+        self.assertNotContains(page, foreign.title)
+        self.client.post(offer_url, {"text": "Есть линейка", "listing": foreign.pk})
+        self.assertFalse(Message.objects.exists())
+        response = self.client.post(offer_url, {"text": "Есть линейка", "listing": own.pk})
+        message = Message.objects.get()
+        self.assertRedirects(response, reverse("ads:conversation", args=[message.response_id]))
+        self.assertEqual(message.offered_ad, own)
+        self.assertIn(wanted.body, message.text)
+        self.assertEqual(CampusMessage.objects.count(), 1)
+        self.assertEqual(self.client.post(offer_url, {"text": "Можно забрать завтра"}).status_code, 302)
+        self.assertIsNone(Message.objects.get(text__endswith="Можно забрать завтра").offered_ad)
+        self.client.force_login(self.asker)
+        self.assertContains(self.client.get(reverse("ads:conversation", args=[message.response_id])), own.get_absolute_url())
+        api = APIClient()
+        api.force_authenticate(self.asker)
+        sent = api.get(reverse("api-conversation-messages", args=[message.response_id]), {"after": 0})
+        self.assertEqual(sent.data["results"][0]["offered_ad"]["url"], own.get_absolute_url())
+        self.client.post(reverse("campus:close_wanted", args=[wanted.pk]), {"status": "found"})
+        self.client.force_login(self.responder)
+        self.assertEqual(self.client.post(offer_url, {"text": "Есть"}).status_code, 404)
+        self.assertEqual(Message.objects.count(), 2)
 
 
 class CampusChatDemoTests(TestCase):

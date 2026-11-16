@@ -1,11 +1,20 @@
 from django import forms
 from django.contrib import admin, messages
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
+from django.shortcuts import get_object_or_404, redirect, render
+from django.template.defaultfilters import linebreaksbr
+from django.urls import path, reverse
 from django.utils.html import format_html, format_html_join
+from django.views.decorators.http import require_http_methods
+
+from ads.authentication import block_account
+from ads.models import Ad
+from campus.models import CampusMessage
 from config.admin_site import WorkspaceAdminMixin
 
-from .models import FAQ, SupportTicket
-from .services import reply_ticket, set_status
+from .models import ContentReport, FAQ, SupportTicket
+from .services import notify_report_decision, reply_ticket, set_status
 
 
 class StaffReplyForm(forms.ModelForm):
@@ -142,6 +151,186 @@ class SupportTicketAdmin(WorkspaceAdminMixin, admin.ModelAdmin):
     @admin.action(description="Открыть повторно", permissions=["change"])
     def reopen_tickets(self, request, queryset):
         self.change_status(request, queryset, False)
+
+
+class ContentReportDecisionForm(forms.ModelForm):
+    class Meta:
+        model = ContentReport
+        fields = ["status", "moderator_note"]
+        widgets = {"moderator_note": forms.Textarea(attrs={"rows": 5})}
+
+    def clean(self):
+        data = super().clean()
+        if data.get("status") in {ContentReport.Status.RESOLVED, ContentReport.Status.DISMISSED}:
+            if not data.get("moderator_note"):
+                self.add_error("moderator_note", "Укажите, почему вы приняли это решение.")
+        return data
+
+
+class ModerationActionForm(forms.Form):
+    reason = forms.CharField(label="Причина решения", max_length=2000, widget=forms.Textarea(attrs={"rows": 4}))
+
+
+@admin.register(ContentReport)
+class ContentReportAdmin(WorkspaceAdminMixin, admin.ModelAdmin):
+    form = ContentReportDecisionForm
+    change_form_template = "admin/content_report_change_form.html"
+    moderation_labels = {
+        "hide-listing": "Скрыть объявление",
+        "remove-message": "Удалить сообщение",
+        "block-author": "Заблокировать автора",
+    }
+    list_display = ["target_label", "kind", "reason", "status", "reporter", "created_at"]
+    list_filter = ["status", "kind", "reason", "created_at"]
+    list_select_related = ["reporter"]
+    search_fields = ["target_label", "target_author", "reporter__username"]
+    readonly_fields = [
+        "reporter", "kind", "reason", "created_at", "updated_at", "target_link",
+        "target_excerpt_text", "complaint_text", "ticket_link",
+    ]
+    fieldsets = [
+        (
+            "Жалоба",
+            {"fields": ["kind", "target_link", "reporter", "reason", "complaint_text", "ticket_link", "created_at"]},
+        ),
+        ("Текст публикации на момент жалобы", {"fields": ["target_excerpt_text"]}),
+        ("Решение", {"fields": ["status", "moderator_note", "updated_at"]}),
+    ]
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        if request.method == "POST" and request.resolver_match.url_name in {
+            "support_contentreport_change", "support_contentreport_moderate",
+        }:
+            return queryset.select_for_update()
+        return queryset
+
+    def get_urls(self):
+        return [
+            path(
+                "<int:object_id>/moderation/<str:action>/",
+                self.admin_site.admin_view(require_http_methods(["GET", "HEAD", "POST"])(self.moderate)),
+                name="support_contentreport_moderate",
+            ),
+        ] + super().get_urls()
+
+    def can_moderate(self, request, report, action):
+        if not self.has_change_permission(request, report):
+            return False
+        if action == "hide-listing":
+            return report.kind == ContentReport.Kind.LISTING and request.user.has_perm("ads.change_ad")
+        if action == "remove-message":
+            return report.kind == ContentReport.Kind.CHAT and request.user.has_perm("campus.delete_campusmessage")
+        return (
+            action == "block-author" and request.user.is_superuser and report.target_account_id
+            and not report.target_account.is_superuser and report.target_account_id != request.user.pk
+        )
+
+    def render_change_form(self, request, context, add=False, change=False, form_url="", obj=None):
+        if obj and self.has_change_permission(request, obj):
+            context["moderation_links"] = [
+                (reverse("admin:support_contentreport_moderate", args=[obj.pk, action]), label)
+                for action, label in self.moderation_labels.items()
+                if self.can_moderate(request, obj, action)
+            ]
+        return super().render_change_form(request, context, add, change, form_url, obj)
+
+    @transaction.atomic
+    def moderate(self, request, object_id, action):
+        if not self.has_change_permission(request):
+            raise PermissionDenied
+        report = get_object_or_404(self.get_queryset(request), pk=object_id)
+        if not self.can_moderate(request, report, action):
+            raise PermissionDenied
+        form = ModerationActionForm(request.POST if request.method == "POST" else None)
+        label = self.moderation_labels[action]
+        if form.is_bound and form.is_valid():
+            try:
+                event = self.apply_moderation(request, report, action, form.cleaned_data["reason"])
+            except ValidationError as exc:
+                form.add_error(None, exc)
+            else:
+                self.message_user(request, event, messages.SUCCESS)
+                return redirect("admin:support_contentreport_change", report.pk)
+        return render(request, "admin/content_report_moderate.html", {
+            **self.admin_site.each_context(request), "opts": self.model._meta,
+            "title": label, "report": report, "form": form,
+        })
+
+    def apply_moderation(self, request, report, action, reason):
+        if action == "hide-listing":
+            target = Ad.objects.select_for_update().filter(pk=report.target_id).first()
+            if not target or target.moderation_hidden:
+                raise ValidationError("Объявление уже скрыто или удалено.")
+            target.moderation_hidden = True
+            target.status = Ad.Status.ARCHIVED
+            target.save(update_fields=["moderation_hidden", "status", "updated_at"])
+            event = "Объявление скрыто"
+        elif action == "remove-message":
+            target = CampusMessage.objects.select_for_update().filter(pk=report.target_id).first()
+            if not target:
+                raise ValidationError("Сообщение уже удалено.")
+            self.admin_site.get_model_admin(CampusMessage).log_deletions(
+                request, CampusMessage.objects.filter(pk=target.pk),
+            )
+            target.delete()
+            event = "Сообщение удалено"
+        else:
+            target, changed = block_account(report.target_account_id, actor=request.user)
+            if not changed:
+                raise ValidationError("Аккаунт уже заблокирован.")
+            event = "Автор заблокирован"
+
+        audit = f"{event} по жалобе № {report.pk}. Причина: {reason}"
+        if action != "remove-message":
+            self.admin_site.get_model_admin(type(target)).log_change(request, target, audit)
+        previous_status = report.status
+        report.status = ContentReport.Status.RESOLVED
+        report.moderator_note = reason
+        report.save(update_fields=["status", "moderator_note", "updated_at"])
+        notify_report_decision(report, previous_status=previous_status)
+        self.log_change(request, report, audit)
+        return event
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        notify_report_decision(obj, previous_status=form.initial.get("status"))
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Публикация")
+    def target_link(self, obj):
+        name = "admin:ads_ad_change" if obj.kind == ContentReport.Kind.LISTING else "admin:campus_campusmessage_change"
+        return format_html(
+            '<a href="{}">{} №{}</a> · @{} · <a href="{}">В админке</a>',
+            obj.target_url, obj.target_label, obj.target_id, obj.target_author,
+            reverse(name, args=[obj.target_id]),
+        )
+
+    @admin.display(description="Текст публикации")
+    def target_excerpt_text(self, obj):
+        return linebreaksbr(obj.target_excerpt)
+
+    @admin.display(description="Объяснение заявителя")
+    def complaint_text(self, obj):
+        first = obj.ticket.messages.first()
+        return linebreaksbr(first.text) if first else None
+
+    @admin.display(description="Обращение в поддержку")
+    def ticket_link(self, obj):
+        return format_html(
+            '<a href="{}">Обращение №{}</a>',
+            reverse("admin:support_supportticket_change", args=[obj.ticket_id]), obj.ticket_id,
+        )
+
+    def construct_change_message(self, request, form, formsets, add=False):
+        if form.has_changed():
+            return f"{form.instance.get_status_display()} · {form.instance.moderator_note or 'Без комментария'}"
+        return super().construct_change_message(request, form, formsets, add)
 
 
 @admin.register(FAQ)

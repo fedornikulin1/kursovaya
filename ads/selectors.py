@@ -2,11 +2,24 @@
 
 from django.db.models import Count, Exists, OuterRef, Q, Subquery, Value, IntegerField
 from django.db.models.functions import Coalesce
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from .authentication import APPROVED_STUDENTS
 from .models import Ad, Favorite, Message, Response
 
 
-def catalogue(user=None):
-    queryset = Ad.objects.select_related("category", "author", "dormitory").prefetch_related("images")
+def catalogue(user=None, *, include_own_hidden=False):
+    visibility = Q(moderation_hidden=False)
+    if include_own_hidden and user and user.is_authenticated:
+        visibility |= Q(author=user)
+    queryset = Ad.objects.filter(visibility, author__is_active=True).select_related(
+        "category", "author", "dormitory"
+    ).prefetch_related("images")
+    if settings.STUDENT_ACCESS_ONLY:
+        admitted = get_user_model().objects.filter(
+            groups__name=APPROVED_STUDENTS
+        ).values("pk")
+        queryset = queryset.filter(Q(author__is_superuser=True) | Q(author_id__in=admitted))
     if user is not None and user.is_authenticated:
         queryset = queryset.annotate(
             is_favorite=Exists(Favorite.objects.filter(user=user, ad_id=OuterRef("pk")))
@@ -18,7 +31,7 @@ def visible_ads(user):
     condition = Q(status=Ad.Status.ACTIVE)
     if user.is_authenticated:
         condition |= Q(author=user)
-    return catalogue(user).filter(condition)
+    return catalogue(user, include_own_hidden=True).filter(condition)
 
 
 def hero_picks(user, limit=6):

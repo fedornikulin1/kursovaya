@@ -76,6 +76,9 @@
                data-message-id="{{ message.pk }}" data-day="{{ message.created_at|date:'Y-m-d' }}">
             <div class="messenger-bubble">
               <p>{{ message.text }}</p>
+              {% if message.offered_ad %}
+                <a class="messenger-offered-listing" href="{{ message.offered_ad.get_absolute_url }}">{{ message.offered_ad.title }} ↗</a>
+              {% endif %}
               <small>
                 <time datetime="{{ message.created_at|date:'c' }}">{{ message.created_at|date:"H:i" }}</time>
                 {% if message.sender_id == user.pk %}

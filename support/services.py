@@ -7,7 +7,9 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from .models import SupportMessage, SupportTicket
+from ads.models import Notification
+
+from .models import ContentReport, SupportMessage, SupportTicket
 
 
 def can_answer(user):
@@ -44,6 +46,46 @@ def create_ticket(*, user, subject, topic, text):
     ticket.save()
     SupportMessage.objects.create(ticket=ticket, sender=user, text=clean_text(text, 4000))
     return ticket
+
+
+@transaction.atomic
+def report_content(*, user, kind, target_id, url, label, author, excerpt, reason, text):
+    if not user.is_authenticated or not user.is_active or user.pk == author.pk:
+        raise PermissionDenied
+    user = get_user_model().objects.select_for_update().get(pk=user.pk)
+    key = {"reporter": user, "kind": kind, "target_id": target_id}
+    existing = ContentReport.objects.select_related("ticket").filter(**key).first()
+    if existing is not None:
+        return existing.ticket, False
+
+    ticket = create_ticket(
+        user=user,
+        subject=f"Жалоба · {ContentReport.Kind(kind).label} № {target_id}",
+        topic=SupportTicket.Topic.SAFETY,
+        text=f"{label}\nПричина: {ContentReport.Reason(reason).label}\n\n{text}",
+    )
+    ContentReport.objects.create(
+        **key, ticket=ticket, target_url=url, target_label=label,
+        target_account=author, target_author=author.get_username(), target_excerpt=excerpt[:10000], reason=reason,
+    )
+    return ticket, True
+
+
+def notify_report_decision(report, *, previous_status):
+    if previous_status == report.status or report.status not in (
+        ContentReport.Status.RESOLVED, ContentReport.Status.DISMISSED,
+    ):
+        return
+    Notification.objects.update_or_create(
+        ticket_id=report.ticket_id,
+        defaults={
+            "user_id": report.reporter_id,
+            "kind": Notification.Kind.REPORT,
+            "detail": report.get_status_display(),
+            "created_at": timezone.now(),
+            "read_at": None,
+        },
+    )
 
 
 def authorize(ticket, actor, staff=False):

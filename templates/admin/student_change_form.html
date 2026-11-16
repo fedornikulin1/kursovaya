@@ -1,0 +1,8 @@
+{% extends "admin/change_form.html" %}
+
+{% block object-tools-items %}
+  {% if listing_history_url %}<li><a href="{{ listing_history_url }}">Объявления</a></li>{% endif %}
+  {% if campus_history_url %}<li><a href="{{ campus_history_url }}">Чат кампуса</a></li>{% endif %}
+  {% if private_history_url %}<li><a href="{{ private_history_url }}">Личные диалоги</a></li>{% endif %}
+  {{ block.super }}
+{% endblock %}

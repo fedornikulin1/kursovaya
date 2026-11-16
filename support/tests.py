@@ -1,15 +1,23 @@
 import os
+import json
+from io import BytesIO
 from pathlib import Path
+from unittest.mock import patch
+from urllib.error import URLError
 
 from django.contrib.admin.models import LogEntry
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from .models import FAQ, SupportMessage, SupportTicket
+from ads.models import Ad, Category, Notification
+from campus.models import CampusMessage
+
+from .models import ContentReport, FAQ, SupportMessage, SupportTicket
 from .selectors import tickets_for
 from .services import create_ticket, reply_ticket, set_status
 
@@ -54,6 +62,122 @@ class SupportTests(TestCase):
             **kwargs,
         )
 
+    def test_content_reports_are_private_idempotent_and_admin_keeps_snapshot_and_decision(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        ad = Ad.objects.create(
+            author=self.outsider, category=Category.objects.create(name="Учебники"),
+            title="Продаю учебник", description="Текст объявления <b>для проверки</b>", price=250,
+        )
+        item = CampusMessage.objects.create(author=self.outsider, body="Сообщение для проверки")
+        listing_url = reverse("support:report_listing", args=[ad.pk])
+        message_url = reverse("support:report_chat_message", args=[item.pk])
+        self.assertEqual(self.client.get(listing_url).status_code, 302)
+        self.client.force_login(self.outsider)
+        self.assertEqual(self.client.get(listing_url).status_code, 403)
+        self.assertEqual(self.client.get(message_url).status_code, 403)
+
+        self.client.force_login(self.user)
+        self.assertContains(self.client.get(ad.get_absolute_url()), listing_url)
+        self.assertContains(self.client.get(reverse("campus:chat")), message_url)
+        report_data = {"reason": "spam", "text": "Проверьте повторные публикации"}
+        first = self.client.post(listing_url, report_data)
+        self.assertEqual(self.client.post(listing_url, report_data).url, first.url)
+        chat_response = self.client.post(message_url, report_data)
+        self.assertEqual(chat_response.status_code, 302)
+        self.assertEqual(ContentReport.objects.count(), 2)
+        self.assertEqual(SupportTicket.objects.count(), 2)
+        report = ContentReport.objects.get(kind="listing")
+        self.assertEqual(report.reporter, self.user)
+        chat_report = ContentReport.objects.get(kind="chat")
+        self.assertIn(f"?around={item.pk}#campus-message-{item.pk}", chat_report.target_url)
+        self.assertContains(self.client.get(first.url), "Модерация · Новая")
+        self.client.force_login(self.outsider)
+        self.assertEqual(self.client.get(first.url).status_code, 404)
+
+        ad.delete()
+        queue = reverse("admin:support_contentreport_changelist")
+        change = reverse("admin:support_contentreport_change", args=[report.pk])
+        self.client.force_login(self.unprivileged_staff)
+        self.assertEqual(self.client.get(queue).status_code, 403)
+        self.client.force_login(self.root)
+        self.assertContains(self.client.get(queue, {"status__exact": "new"}), report.target_label)
+        self.assertContains(self.client.get(change), "Текст объявления &lt;b&gt;для проверки&lt;/b&gt;")
+        invalid = self.client.post(change, {"status": "resolved", "moderator_note": ""})
+        self.assertContains(invalid, "Укажите, почему вы приняли это решение.")
+        self.assertEqual(report.status, ContentReport.Status.NEW)
+        self.assertEqual(
+            self.client.post(change, {"status": "resolved", "moderator_note": "Публикация удалена"}).status_code,
+            302,
+        )
+        report.refresh_from_db()
+        self.assertEqual(report.status, ContentReport.Status.RESOLVED)
+        log = LogEntry.objects.get(object_id=str(report.pk), content_type__model="contentreport")
+        self.assertEqual(log.user, self.root)
+        self.assertIn("Публикация удалена", log.get_change_message())
+        self.client.force_login(self.user)
+        detail = self.client.get(first.url)
+        self.assertContains(detail, "Модерация · Меры приняты")
+        self.assertNotContains(detail, "Публикация удалена")
+        notice = Notification.objects.get(ticket=report.ticket)
+        self.assertEqual(notice.user, self.user)
+        self.assertEqual(notice.detail, "Меры приняты")
+        self.assertEqual(notice.get_absolute_url(), first.url)
+
+    def test_quick_moderation_checks_permissions_and_records_each_action(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        ad = Ad.objects.create(
+            author=self.outsider, category=Category.objects.create(name="Книги"),
+            title="Учебник", description="Описание", price=250,
+        )
+        item = CampusMessage.objects.create(author=self.outsider, body="Текст сообщения")
+        self.client.force_login(self.user)
+        for kind, pk in (("listing", ad.pk), ("chat_message", item.pk)):
+            self.client.post(reverse(f"support:report_{kind}", args=[pk]), {"reason": "spam", "text": "Проверить"})
+        listing_report = ContentReport.objects.get(kind="listing")
+        message_report = ContentReport.objects.get(kind="chat")
+        hide_url = reverse("admin:support_contentreport_moderate", args=[listing_report.pk, "hide-listing"])
+        remove_url = reverse("admin:support_contentreport_moderate", args=[message_report.pk, "remove-message"])
+        block_url = reverse("admin:support_contentreport_moderate", args=[message_report.pk, "block-author"])
+        decision_url = reverse("admin:support_contentreport_change", args=[listing_report.pk])
+        permission = Permission.objects.get(content_type__app_label="support", codename="change_contentreport")
+        self.staff.user_permissions.add(permission)
+        self.client.force_login(self.staff)
+        self.assertNotContains(self.client.get(decision_url), "Скрыть объявление")
+        self.assertEqual(self.client.post(hide_url, {"reason": "Проверено"}).status_code, 403)
+        self.assertEqual(self.client.post(remove_url, {"reason": "Проверено"}).status_code, 403)
+        self.assertEqual(self.client.post(block_url, {"reason": "Проверено"}).status_code, 403)
+        self.staff.user_permissions.add(Permission.objects.get(content_type__app_label="ads", codename="change_ad"))
+        self.assertContains(self.client.get(decision_url), "Скрыть объявление")
+        self.assertContains(self.client.get(hide_url), "Причина решения")
+        self.assertEqual(Ad.objects.get(pk=ad.pk).status, Ad.Status.ACTIVE)
+        self.assertEqual(self.client.post(hide_url, {"reason": ""}).status_code, 200)
+        self.assertRedirects(self.client.post(hide_url, {"reason": "Подтверждённый спам"}), decision_url)
+        ad.refresh_from_db()
+        self.assertTrue(ad.moderation_hidden)
+        self.assertEqual(ad.status, Ad.Status.ARCHIVED)
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.get(ad.get_absolute_url()).status_code, 404)
+        self.client.force_login(self.outsider)
+        self.assertContains(self.client.get(ad.get_absolute_url()), "Объявление скрыто модератором")
+        api = APIClient()
+        api.force_authenticate(self.outsider)
+        self.assertEqual(api.patch(reverse("api-ad-detail", args=[ad.pk]), {"status": "active"}).status_code, 400)
+        self.client.force_login(self.root)
+        self.assertEqual(self.client.post(remove_url, {"reason": "Повторный спам"}).status_code, 302)
+        self.assertFalse(CampusMessage.objects.filter(pk=item.pk).exists())
+        self.assertEqual(self.client.post(block_url, {"reason": "Продолжил рассылку"}).status_code, 302)
+        self.outsider.refresh_from_db()
+        self.assertFalse(self.outsider.is_active)
+        self.assertEqual(Notification.objects.filter(user=self.user, kind=Notification.Kind.REPORT).count(), 2)
+        self.assertEqual(
+            list(LogEntry.objects.filter(content_type__model="contentreport", object_id=str(message_report.pk))
+                 .order_by("pk").values_list("change_message", flat=True)),
+            [f"Сообщение удалено по жалобе № {message_report.pk}. Причина: Повторный спам",
+             f"Автор заблокирован по жалобе № {message_report.pk}. Причина: Продолжил рассылку"],
+        )
+
     def test_public_faq_hides_unpublished_answers(self):
         FAQ.objects.create(topic="other", question="Опубликованный вопрос", answer="Открытый ответ")
         FAQ.objects.create(
@@ -63,6 +187,30 @@ class SupportTests(TestCase):
         self.assertContains(response, "Открытый ответ")
         self.assertNotContains(response, "Скрытый ответ")
         self.assertEqual(self.client.get("/help/tickets/").status_code, 302)
+
+    @override_settings(SUPPORT_AI_API_KEY="mock-key", SUPPORT_AI_MODEL_URI="gpt://mock-folder/yandexgpt-lite/latest")
+    def test_assistant_uses_public_faq_and_offers_human_fallback(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        FAQ.objects.create(topic="other", question="Скрытый черновик", answer="Не отправлять", is_published=False)
+        self.make_ticket(text="Секретный текст обращения")
+        url = reverse("support:ask")
+        self.assertEqual(self.client.get(url).status_code, 302)
+        self.client.force_login(self.user)
+        self.assertContains(self.client.get(reverse("support:help")), "Спросить ИИ-помощника")
+        raw = json.dumps({"result": {"alternatives": [{"message": {"text": "Откройте объявление."}}]}}).encode()
+        with patch("support.assistant.urlopen", return_value=BytesIO(raw)) as provider:
+            response = self.client.post(url, {"question": "Как написать продавцу?"})
+        self.assertContains(response, "Откройте объявление.")
+        body = json.loads(provider.call_args.args[0].data)
+        self.assertIn("Как написать продавцу?", body["messages"][1]["text"])
+        self.assertNotIn("Скрытый черновик", body["messages"][0]["text"])
+        self.assertNotIn("Секретный текст обращения", body["messages"][0]["text"])
+        with patch("support.assistant.urlopen", side_effect=URLError("timeout")):
+            self.assertContains(
+                self.client.post(url, {"question": "Как написать продавцу?"}),
+                "Вопрос можно отправить сотруднику.",
+            )
 
     def test_html_creation_validation_and_sender_cannot_be_forged(self):
         self.client.force_login(self.user)

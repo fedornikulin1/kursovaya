@@ -187,12 +187,21 @@ class MessageInputSerializer(serializers.Serializer):
     text = serializers.CharField(max_length=4000)
 
 
+class OfferedListingSerializer(serializers.ModelSerializer):
+    url = serializers.CharField(source="get_absolute_url", read_only=True)
+
+    class Meta:
+        model = Ad
+        fields = ["title", "url"]
+
+
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)
+    offered_ad = OfferedListingSerializer(read_only=True, allow_null=True)
 
     class Meta:
         model = Message
-        fields = ["id", "sender", "text", "created_at", "read_at"]
+        fields = ["id", "sender", "text", "offered_ad", "created_at", "read_at"]
         read_only_fields = fields
 
 

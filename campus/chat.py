@@ -1,19 +1,29 @@
+from urllib.parse import urlencode
+
 from django import forms
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from urllib.parse import urlencode
 from django.template.loader import render_to_string
 from django.views.decorators.cache import never_cache
-from django.views.decorators.http import require_http_methods, require_safe
+from django.views.decorators.http import require_http_methods, require_POST, require_safe
 
-from .chat_moderation import validate_campus_chat_body
+from ads.authentication import may_sign_in
+from ads.models import Ad
+from ads.services import start_direct_conversation
+from config.content_moderation import validate_campus_chat_body
 from .models import CampusMessage, Dormitory
 
 
 PAGE_SIZE = 50
 MAX_MESSAGE_ID = 2**63 - 1
+ACTIVE_REQUEST = {
+    "kind": CampusMessage.Kind.WANTED,
+    "wanted_status": CampusMessage.WantedStatus.OPEN,
+}
 
 
 class CampusMessageForm(forms.Form):
@@ -41,6 +51,18 @@ class CampusMessageForm(forms.Form):
         return reply
 
 
+class WantedOfferForm(forms.Form):
+    text = forms.CharField(label="Сообщение", max_length=3800, widget=forms.Textarea(attrs={"rows": 4}))
+    listing = forms.ModelChoiceField(
+        queryset=Ad.objects.none(), label="Ваше объявление", required=False,
+        empty_label="Без объявления",
+    )
+
+    def __init__(self, *args, sender, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["listing"].queryset = Ad.objects.filter(author=sender, status=Ad.Status.ACTIVE)
+
+
 def message_id(value):
     if value.isascii() and value.isdecimal() and len(value) <= 19:
         pk = int(value)
@@ -53,8 +75,10 @@ def chat_messages():
     return CampusMessage.objects.select_related("author", "reply_to__author")
 
 
-def render_messages(request, messages):
-    return render_to_string("campus/chat_messages.html", {"chat_messages": messages}, request)
+def render_messages(request, messages, *, wanted=False):
+    return render_to_string(
+        "campus/chat_messages.html", {"chat_messages": messages, "chat_wanted": wanted}, request,
+    )
 
 
 def selected_room(request):
@@ -67,13 +91,71 @@ def selected_room(request):
     return get_object_or_404(Dormitory, pk=room_id, is_active=True)
 
 
+def chat_message_url(message, *, wanted=False, anchor=False):
+    params = {"room": message.dormitory_id} if message.dormitory_id else {}
+    if wanted:
+        params["view"] = "wanted"
+    if anchor:
+        params["around"] = message.pk
+    query = f"?{urlencode(params)}" if params else ""
+    fragment = f"#campus-message-{message.pk}" if anchor else ""
+    return reverse("campus:chat") + query + fragment
+
+
+@login_required
+@require_POST
+def close_wanted(request, pk):
+    wanted = get_object_or_404(
+        CampusMessage.objects.select_related("dormitory"),
+        pk=pk, author=request.user, kind=CampusMessage.Kind.WANTED,
+    )
+    if wanted.dormitory_id and not wanted.dormitory.is_active:
+        raise Http404
+    status = request.POST.get("status")
+    if status not in {CampusMessage.WantedStatus.FOUND, CampusMessage.WantedStatus.CANCELLED}:
+        raise Http404
+    CampusMessage.objects.filter(pk=pk, **ACTIVE_REQUEST).update(wanted_status=status)
+    return redirect(chat_message_url(wanted, wanted=request.POST.get("view") == "wanted"))
+
+
+@login_required
+@never_cache
+@require_http_methods(["GET", "HEAD", "POST"])
+def offer_wanted(request, pk):
+    wanted = get_object_or_404(
+        CampusMessage.objects.select_related("author", "dormitory")
+        .filter(**ACTIVE_REQUEST).exclude(author=request.user), pk=pk,
+    )
+    if not may_sign_in(wanted.author) or (wanted.dormitory_id and not wanted.dormitory.is_active):
+        raise Http404
+    form = WantedOfferForm(
+        request.POST if request.method == "POST" else None, sender=request.user,
+        initial={"text": "Привет! У меня есть то, что ты ищешь."},
+    )
+    if form.is_bound and form.is_valid():
+        text = f"По запросу «{wanted.body[:120]}»\n\n{form.cleaned_data['text']}"
+        try:
+            with transaction.atomic():
+                get_object_or_404(CampusMessage.objects.select_for_update(), pk=pk, **ACTIVE_REQUEST)
+                thread = start_direct_conversation(
+                    user=request.user, recipient=wanted.author, text=text,
+                    offered_ad=form.cleaned_data["listing"], wanted_reply=True,
+                )
+        except ValidationError as exc:
+            form.add_error(None, exc)
+        else:
+            return redirect("ads:conversation", pk=thread.pk)
+    return render(request, "campus/wanted_offer.html", {
+        "form": form, "wanted": wanted, "back_url": chat_message_url(wanted, anchor=True),
+    })
+
+
 @never_cache
 @login_required
 @require_http_methods(["GET", "HEAD", "POST"])
 def chat(request):
     posting = request.method == "POST"
     json_post = posting and request.headers.get("Accept") == "application/json"
-    room = request.GET.get("room", "")
     dormitory = selected_room(request)
     wanted = request.GET.get("view") == "wanted"
     form = CampusMessageForm(request.POST if posting else None)
@@ -89,10 +171,9 @@ def chat(request):
         )
         if json_post:
             visible_in_feed = not wanted or message.kind == CampusMessage.Kind.WANTED
-            html = render_messages(request, [message]) if visible_in_feed else ""
+            html = render_messages(request, [message], wanted=wanted) if visible_in_feed else ""
             return JsonResponse({"html": html}, status=201)
-        url = reverse("campus:chat")
-        return redirect(f"{url}?{urlencode({'room': room})}" if room else url)
+        return redirect(chat_message_url(message, wanted=wanted))
     if json_post:
         return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
 
@@ -103,7 +184,7 @@ def chat(request):
         entries = entries.filter(pk__lte=around)
         wanted = False
     elif wanted:
-        entries = entries.filter(kind=CampusMessage.Kind.WANTED)
+        entries = entries.filter(**ACTIVE_REQUEST)
     if before:
         entries = entries.filter(pk__lt=before)
     batch = list(entries[: PAGE_SIZE + 1])
@@ -144,14 +225,30 @@ def chat_feed(request):
     if after is None:
         return JsonResponse({"error": "Некорректный номер сообщения."}, status=400)
     entries = chat_messages().filter(pk__gt=after, dormitory=dormitory)
-    if request.GET.get("view") == "wanted":
-        entries = entries.filter(kind=CampusMessage.Kind.WANTED)
+    wanted = request.GET.get("view") == "wanted"
+    if wanted:
+        entries = entries.filter(**ACTIVE_REQUEST)
     batch = list(entries.order_by("pk")[: PAGE_SIZE + 1])
     visible = batch[:PAGE_SIZE]
-    return JsonResponse(
-        {
-            "html": render_messages(request, visible) if visible else "",
-            "latest_id": visible[-1].pk if visible else after,
-            "has_more": len(batch) > PAGE_SIZE,
+    payload = {
+        "html": render_messages(request, visible, wanted=wanted) if visible else "",
+        "latest_id": visible[-1].pk if visible else after,
+        "has_more": len(batch) > PAGE_SIZE,
+    }
+    if request.GET.get("watch"):
+        watched = {
+            pk for value in request.GET["watch"].split(",", PAGE_SIZE)[:PAGE_SIZE]
+            if (pk := message_id(value)) is not None
         }
-    )
+        requests = CampusMessage.objects.filter(
+            pk__in=watched, dormitory=dormitory, kind=CampusMessage.Kind.WANTED,
+        )
+        if wanted:
+            active = requests.filter(wanted_status=CampusMessage.WantedStatus.OPEN).values_list("pk", flat=True)
+            payload["removed"] = [str(pk) for pk in watched.difference(active)]
+        else:
+            payload["closed_requests"] = {
+                str(item.pk): item.get_wanted_status_display()
+                for item in requests.exclude(wanted_status=CampusMessage.WantedStatus.OPEN)
+            }
+    return JsonResponse(payload)

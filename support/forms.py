@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import SupportTicket
+from .models import ContentReport, SupportTicket
 
 
 class TicketForm(forms.ModelForm):
@@ -26,14 +26,7 @@ class TicketForm(forms.ModelForm):
 
 
 class ProfileReportForm(forms.Form):
-    REASONS = (
-        ("", "Выберите причину"),
-        ("harassment", "Оскорбления или угрозы"),
-        ("fraud", "Подозрение на мошенничество"),
-        ("prohibited_goods", "Запрещённые товары"),
-        ("spam", "Спам"),
-        ("other", "Другая причина"),
-    )
+    REASONS = (("", "Выберите причину"), *ContentReport.Reason.choices)
 
     reason = forms.ChoiceField(label="Причина жалобы", choices=REASONS)
     text = forms.CharField(

@@ -63,7 +63,9 @@
           {% include "components/icon.html" with name="pin" %}
           {% if ad.dormitory %}{{ ad.dormitory }}{% else %}{{ ad.location }}{% endif %}
         </p>
-        {% if ad.status != "active" %}
+        {% if ad.moderation_hidden %}
+          <div class="flash">Объявление скрыто модератором.</div>
+        {% elif ad.status != "active" %}
           <div class="flash">{{ ad.get_status_display }}</div>
         {% endif %}
         {% if user.pk == ad.author_id %}
@@ -131,6 +133,9 @@
         {% if user.is_authenticated and ad.contact_info %}
           <p class="muted contact-text">{{ ad.contact_info }}</p>
         {% endif %}
+        {% if user.is_authenticated and user.pk != ad.author_id and ad.status == 'active' %}
+          <a class="listing-report-link" href="{% url 'support:report_listing' ad.pk %}">Пожаловаться на объявление</a>
+        {% endif %}
       </div>
       {% if can_contact and not existing_conversation %}
         <form class="contact-compose"
@@ -159,7 +164,7 @@
           {% if message_form.errors %}<p class="messenger-error">{{ message_form.text.errors|striptags }}</p>{% endif %}
           <button class="btn btn-primary w-full"
                   type="submit">Начать разговор {% include "components/icon.html" with name="send" %}</button>
-          <small>{% include "components/icon.html" with name="lock" %} Сообщение увидит только собеседник</small>
+          <small>{% include "components/icon.html" with name="lock" %} Личное сообщение · <a href="{% url 'ads:information' 'safety' %}">Кто видит переписку</a></small>
         </form>
       {% endif %}
       <div class="surface ad-detail-specs">

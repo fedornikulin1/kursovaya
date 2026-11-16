@@ -4,7 +4,7 @@ from smtplib import SMTPException
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
 from rest_framework import generics, mixins, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response as APIResponse
@@ -50,6 +50,8 @@ class RegisterView(generics.CreateAPIView):
 
     @extend_schema(responses={201: UserSerializer})
     def post(self, request, *args, **kwargs):
+        if settings.STUDENT_ACCESS_ONLY:
+            return APIResponse({"detail": "Открытая регистрация закрыта."}, status=403)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
@@ -65,8 +67,17 @@ class ConfirmEmailView(APIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "auth"
 
+    @extend_schema(
+        request=inline_serializer("ConfirmEmailInput", fields={
+            "username": serializers.CharField(),
+            "code": serializers.CharField(min_length=6, max_length=6),
+        }),
+        responses={200: inline_serializer("EmailConfirmationResult", fields={
+            "detail": serializers.CharField(),
+        })},
+    )
     def post(self, request):
-        if not settings.EMAIL_VERIFICATION_REQUIRED:
+        if settings.STUDENT_ACCESS_ONLY or not settings.EMAIL_VERIFICATION_REQUIRED:
             return APIResponse({"detail": "Подтверждение почты сейчас отключено. Можно войти с паролем."}, status=404)
         from ads.email_verification import confirm_email
         username = str(request.data.get("username", ""))
@@ -83,8 +94,12 @@ class ResendEmailCodeView(APIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "auth"
 
+    @extend_schema(
+        request=inline_serializer("ResendEmailCodeInput", fields={"username": serializers.CharField()}),
+        responses={200: inline_serializer("EmailResendResult", fields={"detail": serializers.CharField()})},
+    )
     def post(self, request):
-        if not settings.EMAIL_VERIFICATION_REQUIRED:
+        if settings.STUDENT_ACCESS_ONLY or not settings.EMAIL_VERIFICATION_REQUIRED:
             return APIResponse({"detail": "Подтверждение почты сейчас отключено. Можно войти с паролем."}, status=404)
         from datetime import timedelta
         from django.utils import timezone
@@ -171,7 +186,7 @@ class AdViewSet(viewsets.ModelViewSet):
     @extend_schema(responses=AdSerializer(many=True))
     @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def mine(self, request):
-        queryset = catalogue(request.user).filter(author=request.user)
+        queryset = catalogue(request.user, include_own_hidden=True).filter(author=request.user)
         page = self.paginate_queryset(queryset)
         return self.get_paginated_response(self.get_serializer(page, many=True).data)
 
@@ -289,7 +304,7 @@ class ConversationViewSet(
                 conversation=conversation, sender=request.user, **serializer.validated_data
             )
             return APIResponse(MessageSerializer(message).data, status=201)
-        queryset = conversation.messages.select_related("sender").order_by("-created_at", "-pk")
+        queryset = conversation.messages.select_related("sender", "offered_ad").order_by("-created_at", "-pk")
         if "after" in request.query_params:
             try:
                 after = int(request.query_params["after"])
